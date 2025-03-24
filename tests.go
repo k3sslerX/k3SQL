@@ -14,13 +14,13 @@ func main() {
 	flag := k3SQLServer.CheckQuery(query)
 	fmt.Println(flag)
 	if flag {
-		parsedQuery, err := k3SQLServer.ParseCreateQuery(query)
+		parsedQuery, err := k3SQLServer.ParseInsertQuery(query)
 		if err == nil {
-			fmt.Printf("table: %s\nFields:\n", parsedQuery.Table)
-			for k, v := range parsedQuery.Fields {
-				fmt.Printf("%s %d\n", k, v)
-			}
-			fmt.Println(k3SQLServer.CreateTable(parsedQuery))
+			fmt.Println(k3SQLServer.InsertTable(parsedQuery))
+			//fmt.Printf("table: %s\nFields:\n", parsedQuery.Table)
+			//for k, v := range parsedQuery.Fields {
+			//	fmt.Printf("%s %d\n", k, v)
+			//}
 		} else {
 			fmt.Println(err)
 		}

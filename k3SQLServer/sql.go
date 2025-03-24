@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const DatabaseDefaultName = "k3db"
+
 type K3join struct {
 	Src       string
 	Dst       string
@@ -14,6 +16,7 @@ type K3join struct {
 }
 
 type K3SelectQuery struct {
+	Database  string
 	Table     string
 	Values    []string
 	Condition string
@@ -21,9 +24,16 @@ type K3SelectQuery struct {
 }
 
 type K3CreateQuery struct {
+	Database    string
 	Table       string
 	Fields      map[string]int
 	Constraints map[string]string
+}
+
+type K3InsertQuery struct {
+	Database string
+	Table    string
+	Values   []map[string]string
 }
 
 func CheckQuery(queryStr string) bool {
@@ -168,6 +178,7 @@ func ParseSelectQuery(queryStr string) (*K3SelectQuery, error) {
 	} else {
 		query.Join = join
 	}
+	query.Database = DatabaseDefaultName
 	return query, nil
 }
 
@@ -175,13 +186,33 @@ func ParseCreateQuery(queryStr string) (*K3CreateQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(K3CreateQuery)
 	tableFlag := false
+	ifFlag := false
+	notFlag := false
 	for _, part := range parts {
+		if strings.EqualFold(part, "table") {
+			tableFlag = true
+			continue
+		} else if strings.EqualFold(part, "if") {
+			ifFlag = true
+			continue
+		} else if strings.EqualFold(part, "not") {
+			if !ifFlag {
+				return nil, errors.New("SQL syntax error")
+			}
+			notFlag = true
+			continue
+		} else if strings.EqualFold(part, "exists") {
+			if !ifFlag {
+				return nil, errors.New("SQL syntax error")
+			}
+			if !notFlag {
+				return nil, errors.New("SQL logic error")
+			}
+			continue
+		}
 		if tableFlag {
 			query.Table = part
 			tableFlag = false
-		}
-		if strings.EqualFold(part, "table") {
-			tableFlag = true
 		}
 	}
 	fieldsStr := ""
@@ -205,7 +236,7 @@ func ParseCreateQuery(queryStr string) (*K3CreateQuery, error) {
 		if len(fieldsParts) != 2 {
 			return nil, errors.New("SQL syntax error")
 		}
-		switch fieldsParts[1] {
+		switch strings.ToUpper(fieldsParts[1]) {
 		case "INT":
 			fields[fieldsParts[0]] = K3INT
 		case "FLOAT":
@@ -217,5 +248,74 @@ func ParseCreateQuery(queryStr string) (*K3CreateQuery, error) {
 		}
 	}
 	query.Fields = fields
+	query.Database = DatabaseDefaultName
+	return query, nil
+}
+
+func ParseInsertQuery(queryStr string) (*K3InsertQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(K3InsertQuery)
+	intoFlag := false
+	valuesFlag := false
+	fieldsFlag := false
+	valuesStr := ""
+	fieldsStr := ""
+	for _, part := range parts {
+		if strings.EqualFold(part, "into") {
+			intoFlag = true
+			continue
+		} else if strings.EqualFold(part, "values") {
+			fieldsFlag = false
+			valuesFlag = true
+			continue
+		}
+		if intoFlag {
+			query.Table = part
+			intoFlag = false
+			fieldsFlag = true
+			continue
+		}
+		if valuesFlag {
+			valuesStr += part
+		}
+		if fieldsFlag {
+			fieldsStr += part
+		}
+	}
+	fieldsStr = strings.TrimSuffix(fieldsStr, ")")
+	fieldsStr = strings.TrimPrefix(fieldsStr, "(")
+	fieldsSlice := strings.Split(fieldsStr, ",")
+	valuesSlice := make([]string, strings.Count(valuesStr, "("))
+	str := ""
+	cnt := 0
+	flag := false
+	for _, el := range valuesStr {
+		if el == '(' {
+			flag = true
+			continue
+		}
+		if el == ')' {
+			valuesSlice[cnt] = str
+			str = ""
+			cnt++
+			flag = false
+			continue
+		}
+		if flag {
+			str += string(el)
+		}
+	}
+	tmpMap := make([]map[string]string, len(valuesSlice))
+	cnt = 0
+	for _, value := range valuesSlice {
+		tmpMap[cnt] = make(map[string]string, len(fieldsSlice))
+		valueParts := strings.Split(value, ",")
+		for i := 0; i < len(fieldsSlice); i++ {
+			tmpMap[cnt][fieldsSlice[i]] = valueParts[i]
+		}
+		cnt++
+	}
+	query.Values = tmpMap
+	query.Database = DatabaseDefaultName
 	return query, nil
 }
