@@ -2,11 +2,6 @@ package k3SQLServer
 
 import (
 	"errors"
-	"fmt"
-	"log"
-	"net"
-	"os"
-	"strconv"
 	"strings"
 )
 
@@ -17,7 +12,7 @@ type K3join struct {
 	TypeJoin  int
 }
 
-type K3query struct {
+type K3SelectQuery struct {
 	Table     string
 	Values    []string
 	Condition string
@@ -68,9 +63,9 @@ func CheckQuery(queryStr *string) bool {
 	return false
 }
 
-func ParseQuery(queryStr *string) (*K3query, error) {
+func ParseQuery(queryStr *string) (*K3SelectQuery, error) {
 	parts := strings.Fields(*queryStr)
-	query := new(K3query)
+	query := new(K3SelectQuery)
 	join := new(K3join)
 	query.Values = make([]string, 0)
 	selectCond := false
@@ -125,32 +120,4 @@ func ParseQuery(queryStr *string) (*K3query, error) {
 		query.Join = join
 	}
 	return query, nil
-}
-
-func connectServer() {
-	arguments := os.Args
-	port := 3003
-	if len(arguments) > 1 {
-		tmp, err := strconv.Atoi(arguments[1])
-		if err != nil {
-			fmt.Printf("usage: %s [port]\n", arguments[0])
-			return
-		} else {
-			port = tmp
-		}
-	}
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: port})
-	if err != nil {
-		fmt.Println("error while establishing server")
-		return
-	}
-	defer conn.Close()
-	for {
-		buf := make([]byte, 1024)
-		n, _, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println("Получено: ", string(buf[:n]))
-	}
 }
