@@ -9,18 +9,19 @@ import (
 	"strings"
 )
 
-var K3sqlDataPath = "/usr/k3sql/data/"
+const K3sqlDataPath = k3FilesPath + "data/"
+const extension = ".k3"
 
 const K3INT = 1
 const K3FLOAT = 2
 const K3TEXT = 3
 
 func createTableFile(name string, fields map[string]int) error {
-	file, err := os.Create(K3sqlDataPath + name)
+	file, err := os.Create(K3sqlDataPath + name + extension)
 	defer file.Close()
-	if err != nil {
+	if err == nil {
 		writer := bufio.NewWriter(file)
-		str := ""
+		str := "|"
 		for k, v := range fields {
 			str += fmt.Sprintf("%d %s|", v, k)
 		}
