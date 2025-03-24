@@ -12,9 +12,9 @@ import (
 const k3sqlDataPath = k3FilesPath + "data/"
 const extension = ".k3"
 
-const K3INT = 1
-const K3FLOAT = 2
-const K3TEXT = 3
+const k3INT = 1
+const k3FLOAT = 2
+const k3TEXT = 3
 
 func createDatabase(name string) error {
 	return os.Mkdir(k3sqlDataPath+name, 0700)
@@ -90,21 +90,21 @@ func insertTableFile(query *k3InsertQuery) error {
 		for _, value := range query.values {
 			str := ""
 			for k, _ := range tableTypes {
-				if tableTypes[k] == K3INT {
+				if tableTypes[k] == k3INT {
 					v := value[k]
 					_, err := strconv.Atoi(v)
 					if err != nil {
 						return err
 					}
 					str += v + "|"
-				} else if tableTypes[k] == K3FLOAT {
+				} else if tableTypes[k] == k3FLOAT {
 					v := value[k]
 					_, err := strconv.ParseFloat(v, 64)
 					if err != nil {
 						return err
 					}
 					str += v + "|"
-				} else if tableTypes[k] == K3TEXT {
+				} else if tableTypes[k] == k3TEXT {
 					v := value[k]
 					str += v + "|"
 				} else {

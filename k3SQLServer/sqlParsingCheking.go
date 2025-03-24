@@ -238,11 +238,11 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 		}
 		switch strings.ToUpper(fieldsParts[1]) {
 		case "INT":
-			fields[fieldsParts[0]] = K3INT
+			fields[fieldsParts[0]] = k3INT
 		case "FLOAT":
-			fields[fieldsParts[0]] = K3FLOAT
+			fields[fieldsParts[0]] = k3FLOAT
 		case "TEXT":
-			fields[fieldsParts[0]] = K3TEXT
+			fields[fieldsParts[0]] = k3TEXT
 		default:
 			return nil, errors.New(fmt.Sprintf("Invalid type: %s", fieldsParts[i+1]))
 		}
