@@ -9,19 +9,19 @@ import (
 	"strings"
 )
 
-const K3sqlDataPath = k3FilesPath + "data/"
+const k3sqlDataPath = k3FilesPath + "data/"
 const extension = ".k3"
 
 const K3INT = 1
 const K3FLOAT = 2
 const K3TEXT = 3
 
-func CreateDatabase(name string) error {
-	return os.Mkdir(K3sqlDataPath+name, 0700)
+func createDatabase(name string) error {
+	return os.Mkdir(k3sqlDataPath+name, 0700)
 }
 
 func databaseExists(name string) bool {
-	_, err := os.Stat(K3sqlDataPath + name)
+	_, err := os.Stat(k3sqlDataPath + name)
 	if err == nil {
 		return true
 	}
@@ -29,7 +29,7 @@ func databaseExists(name string) bool {
 }
 
 func existsTable(name string, db string) bool {
-	file, err := os.Open(K3sqlDataPath + db + "/" + name + extension)
+	file, err := os.Open(k3sqlDataPath + db + "/" + name + extension)
 	defer file.Close()
 	if err == nil {
 		data := make([]byte, 128)
@@ -45,13 +45,13 @@ func existsTable(name string, db string) bool {
 	return false
 }
 
-func createTableFile(query *K3CreateQuery) error {
-	file, err := os.Create(K3sqlDataPath + query.Database + "/" + query.Table + extension)
+func createTableFile(query *k3CreateQuery) error {
+	file, err := os.Create(k3sqlDataPath + query.database + "/" + query.table + extension)
 	defer file.Close()
 	if err == nil {
 		writer := bufio.NewWriter(file)
 		str := ""
-		for k, v := range query.Fields {
+		for k, v := range query.fields {
 			str += fmt.Sprintf("%d %s|", v, k)
 		}
 		_, err = writer.WriteString(strings.TrimSuffix(str, "|") + "\n")
@@ -66,8 +66,8 @@ func createTableFile(query *K3CreateQuery) error {
 	return err
 }
 
-func insertTableFile(query *K3InsertQuery) error {
-	fileRead, err := os.Open(K3sqlDataPath + query.Database + "/" + query.Table + extension)
+func insertTableFile(query *k3InsertQuery) error {
+	fileRead, err := os.Open(k3sqlDataPath + query.database + "/" + query.table + extension)
 	if err == nil {
 		scanner := bufio.NewScanner(fileRead)
 		scanner.Scan()
@@ -82,9 +82,12 @@ func insertTableFile(query *K3InsertQuery) error {
 			}
 			tableTypes[part[2:]] = tableType
 		}
-		file, err := os.OpenFile(K3sqlDataPath+query.Database+"/"+query.Table+extension, os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(k3sqlDataPath+query.database+"/"+query.table+extension, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
 		defer file.Close()
-		for _, value := range query.Values {
+		for _, value := range query.values {
 			str := ""
 			for k, _ := range tableTypes {
 				if tableTypes[k] == K3INT {

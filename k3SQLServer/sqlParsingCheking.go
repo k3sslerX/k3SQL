@@ -6,37 +6,37 @@ import (
 	"strings"
 )
 
-const DatabaseDefaultName = "k3db"
+const databaseDefaultName = "k3db"
 
-type K3join struct {
-	Src       string
-	Dst       string
-	Condition string
-	TypeJoin  int
+type k3join struct {
+	src       string
+	dst       string
+	condition string
+	typeJoin  int
 }
 
-type K3SelectQuery struct {
-	Database  string
-	Table     string
-	Values    []string
-	Condition string
-	Join      *K3join
+type k3SelectQuery struct {
+	database  string
+	table     string
+	values    []string
+	condition string
+	join      *k3join
 }
 
-type K3CreateQuery struct {
-	Database    string
-	Table       string
-	Fields      map[string]int
-	Constraints map[string]string
+type k3CreateQuery struct {
+	database    string
+	table       string
+	fields      map[string]int
+	constraints map[string]string
 }
 
-type K3InsertQuery struct {
-	Database string
-	Table    string
-	Values   []map[string]string
+type k3InsertQuery struct {
+	database string
+	table    string
+	values   []map[string]string
 }
 
-func CheckQuery(queryStr string) bool {
+func checkQuery(queryStr string) bool {
 	parts := strings.Fields(queryStr)
 	part := parts[0]
 	switch strings.ToLower(part) {
@@ -53,7 +53,7 @@ func CheckQuery(queryStr string) bool {
 	case "alter":
 		return checkAlterQuery(parts)
 	case "explain":
-		return CheckQuery(queryStr[len(part):])
+		return checkQuery(queryStr[len(part):])
 	default:
 		return false
 	}
@@ -122,11 +122,11 @@ func checkAlterQuery(parts []string) bool {
 	return true
 }
 
-func ParseSelectQuery(queryStr string) (*K3SelectQuery, error) {
+func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(K3SelectQuery)
-	join := new(K3join)
-	query.Values = make([]string, 0)
+	query := new(k3SelectQuery)
+	join := new(k3join)
+	query.values = make([]string, 0)
 	selectCond := false
 	fromCond := false
 	whereCond := false
@@ -157,34 +157,34 @@ func ParseSelectQuery(queryStr string) (*K3SelectQuery, error) {
 			continue
 		}
 		if selectCond {
-			query.Values = append(query.Values, part)
+			query.values = append(query.values, part)
 		} else if fromCond {
-			query.Table = part
+			query.table = part
 			fromCond = false
 		} else if whereCond {
-			query.Condition += part
+			query.condition += part
 		} else if joinCond {
-			join.Src = query.Table
-			join.Dst = part
+			join.src = query.table
+			join.dst = part
 		} else if onCond {
-			join.Condition += part
+			join.condition += part
 		}
 	}
-	if (joinFlag && !onFlag) || (!joinFlag && onFlag) || len(query.Values) == 0 || len(query.Table) == 0 {
+	if (joinFlag && !onFlag) || (!joinFlag && onFlag) || len(query.values) == 0 || len(query.table) == 0 {
 		return nil, errors.New("SQL syntax error")
 	}
 	if !joinFlag {
-		query.Join = nil
+		query.join = nil
 	} else {
-		query.Join = join
+		query.join = join
 	}
-	query.Database = DatabaseDefaultName
+	query.database = databaseDefaultName
 	return query, nil
 }
 
-func ParseCreateQuery(queryStr string) (*K3CreateQuery, error) {
+func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(K3CreateQuery)
+	query := new(k3CreateQuery)
 	tableFlag := false
 	ifFlag := false
 	notFlag := false
@@ -211,7 +211,7 @@ func ParseCreateQuery(queryStr string) (*K3CreateQuery, error) {
 			continue
 		}
 		if tableFlag {
-			query.Table = part
+			query.table = part
 			tableFlag = false
 		}
 	}
@@ -247,14 +247,14 @@ func ParseCreateQuery(queryStr string) (*K3CreateQuery, error) {
 			return nil, errors.New(fmt.Sprintf("Invalid type: %s", fieldsParts[i+1]))
 		}
 	}
-	query.Fields = fields
-	query.Database = DatabaseDefaultName
+	query.fields = fields
+	query.database = databaseDefaultName
 	return query, nil
 }
 
-func ParseInsertQuery(queryStr string) (*K3InsertQuery, error) {
+func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(K3InsertQuery)
+	query := new(k3InsertQuery)
 	intoFlag := false
 	valuesFlag := false
 	fieldsFlag := false
@@ -270,7 +270,7 @@ func ParseInsertQuery(queryStr string) (*K3InsertQuery, error) {
 			continue
 		}
 		if intoFlag {
-			query.Table = part
+			query.table = part
 			intoFlag = false
 			fieldsFlag = true
 			continue
@@ -315,7 +315,7 @@ func ParseInsertQuery(queryStr string) (*K3InsertQuery, error) {
 		}
 		cnt++
 	}
-	query.Values = tmpMap
-	query.Database = DatabaseDefaultName
+	query.values = tmpMap
+	query.database = databaseDefaultName
 	return query, nil
 }
