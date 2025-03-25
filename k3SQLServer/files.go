@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func createDatabase(name string) error {
+func createDatabaseFile(name string) error {
 	return os.Mkdir(k3sqlDataPath+name, 0700)
 }
 

@@ -7,6 +7,32 @@ import (
 	"sync"
 )
 
+func createDatabase(name string) error {
+	err := createDatabaseFile(name)
+	if err == nil {
+		tableFields := make([]string, 2)
+		tableFields[0], tableFields[1] = "name", "password"
+		table := k3Table{
+			database: name,
+			name:     "users",
+			fields:   tableFields,
+			mu:       new(sync.RWMutex),
+		}
+		queryFields := make(map[string]int, 2)
+		queryFields["name"] = 3
+		queryFields["password"] = 3
+		query := k3CreateQuery{
+			table:  &table,
+			fields: queryFields,
+		}
+		err = createTable(&query)
+		if err == nil {
+			k3Tables[table.name] = &table
+		}
+	}
+	return err
+}
+
 func readAllFiles(rootDir string, callback func(path string, isDir bool) error) error {
 	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

@@ -194,7 +194,12 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 	tableFlag := false
 	ifFlag := false
 	notFlag := false
+	databaseFlag := false
 	for _, part := range parts {
+		if strings.EqualFold(part, "database") {
+			databaseFlag = true
+			continue
+		}
 		if strings.EqualFold(part, "table") {
 			tableFlag = true
 			continue
@@ -218,9 +223,13 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 		}
 		if tableFlag {
 			table := k3Table{name: part, database: databaseDefaultName, mu: new(sync.RWMutex)}
-			k3Tables[part] = &table
 			query.table = &table
 			tableFlag = false
+		}
+		if databaseFlag {
+			table := k3Table{name: "", database: part, mu: nil}
+			query.table = &table
+			return query, errors.New("database")
 		}
 	}
 	fieldsStr := ""

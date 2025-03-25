@@ -26,6 +26,8 @@ func Query(queryString string) error {
 		query, err := parseCreateQuery(queryString)
 		if err == nil {
 			err = createTable(query)
+		} else if errors.Is(err, errors.New("database")) {
+			err = createDatabase(query.table.database)
 		}
 		return err
 	case "insert":

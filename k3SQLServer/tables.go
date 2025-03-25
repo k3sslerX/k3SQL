@@ -5,7 +5,11 @@ import "errors"
 func createTable(query *k3CreateQuery) error {
 	if databaseExists(query.table.database) {
 		if !existsTable(query.table) {
-			return createTableFile(query)
+			err := createTableFile(query)
+			if err == nil {
+				k3Tables[query.table.name] = query.table
+			}
+			return err
 		}
 		return errors.New(tableExists)
 	}
