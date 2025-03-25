@@ -46,9 +46,11 @@ func parseOutput(resp []map[string]string, table *k3Table) string {
 		cnt := 0
 		str := "|"
 		for _, k := range table.fields {
-			fields[cnt] = k
-			str += fmt.Sprintf(" %10s |", k)
-			cnt++
+			if _, ok := resp[0][k]; ok {
+				fields[cnt] = k
+				str += fmt.Sprintf(" %10s |", k)
+				cnt++
+			}
 		}
 		str += "\n|"
 		str += strings.Repeat("-", 10*cnt+3*cnt-1)

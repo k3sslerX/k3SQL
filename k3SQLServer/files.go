@@ -152,9 +152,9 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 	if err == nil {
 		scanner := bufio.NewScanner(fileRead)
 		scanner.Scan()
-		dataStr := scanner.Text()
-		parts := strings.Split(dataStr, "|")
-		tableTypes := make(map[string]int, len(parts))
+		//dataStr := scanner.Text()
+		//parts := strings.Split(dataStr, "|")
+		//tableTypes := make(map[string]int, len(parts))
 		tableFields := query.table.fields
 		//for _, part := range parts {
 		//	tableType, err := strconv.Atoi(string(part[0]))
@@ -176,7 +176,7 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 			} else {
 				for _, value := range values {
 					flag := false
-					for k, _ := range tableTypes {
+					for _, k := range tableFields {
 						if value == k {
 							flag = true
 							break
