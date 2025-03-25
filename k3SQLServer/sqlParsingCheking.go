@@ -4,9 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 const databaseDefaultName = "k3db"
+
+type k3Table struct {
+	database string
+	name     string
+	//fields map[string]int
+	mu *sync.RWMutex
+}
 
 type k3join struct {
 	src       string
@@ -16,16 +24,14 @@ type k3join struct {
 }
 
 type k3SelectQuery struct {
-	database  string
-	table     string
+	table     *k3Table
 	values    []string
 	condition string
-	join      *k3join
+	//join      *k3join
 }
 
 type k3CreateQuery struct {
-	database    string
-	table       string
+	table       *k3Table
 	fields      map[string]int
 	constraints map[string]string
 }
@@ -158,26 +164,31 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 		if selectCond {
 			query.values = append(query.values, part)
 		} else if fromCond {
-			query.table = part
+			table, ok := k3Tables[part]
+			if ok {
+				query.table = table
+			} else {
+				return nil, errors.New(tableNotExists)
+			}
 			fromCond = false
 		} else if whereCond {
 			query.condition += part
 		} else if joinCond {
-			join.src = query.table
+			join.src = query.table.name
 			join.dst = part
 		} else if onCond {
 			join.condition += part
 		}
 	}
-	if (joinFlag && !onFlag) || (!joinFlag && onFlag) || len(query.values) == 0 || len(query.table) == 0 {
+	if (joinFlag && !onFlag) || (!joinFlag && onFlag) || len(query.values) == 0 {
 		return nil, errors.New("SQL syntax error")
 	}
-	if !joinFlag {
-		query.join = nil
-	} else {
-		query.join = join
-	}
-	query.database = databaseDefaultName
+	//if !joinFlag {
+	//	query.join = nil
+	//} else {
+	//	query.join = join
+	//}
+	query.table.database = databaseDefaultName
 	return query, nil
 }
 
@@ -210,7 +221,9 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 			continue
 		}
 		if tableFlag {
-			query.table = part
+			table := k3Table{name: part, database: databaseDefaultName, mu: new(sync.RWMutex)}
+			k3Tables[part] = &table
+			query.table = &table
 			tableFlag = false
 		}
 	}
@@ -247,7 +260,6 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 		}
 	}
 	query.fields = fields
-	query.database = databaseDefaultName
 	return query, nil
 }
 

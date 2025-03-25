@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 const k3sqlDataPath = k3FilesPath + "data/"
@@ -29,8 +28,8 @@ func databaseExists(name string) bool {
 	return false
 }
 
-func existsTable(name string, db string) bool {
-	file, err := os.Open(k3sqlDataPath + db + "/" + name + extension)
+func existsTable(table *k3Table) bool {
+	file, err := os.Open(k3sqlDataPath + table.database + "/" + table.name + extension)
 	defer file.Close()
 	if err == nil {
 		data := make([]byte, 128)
@@ -47,7 +46,7 @@ func existsTable(name string, db string) bool {
 }
 
 func createTableFile(query *k3CreateQuery) error {
-	file, err := os.Create(k3sqlDataPath + query.database + "/" + query.table + extension)
+	file, err := os.Create(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
 	defer file.Close()
 	if err == nil {
 		writer := bufio.NewWriter(file)
@@ -63,7 +62,6 @@ func createTableFile(query *k3CreateQuery) error {
 		if err != nil {
 			return err
 		}
-		k3Tables[query.table] = &k3Table{database: query.database, name: query.table, mu: new(sync.RWMutex)}
 	}
 	return err
 }
@@ -134,4 +132,14 @@ func insertTableFile(query *k3InsertQuery) error {
 		}
 	}
 	return err
+}
+
+func selectTableFile(query *k3SelectQuery) error {
+	query.table.mu.RLock()
+	defer query.table.mu.RUnlock()
+	fmt.Println("tablename:", query.table.name)
+	fmt.Println("database:", query.table.database)
+	fmt.Println("values:", query.values)
+	fmt.Println("condition:", query.condition)
+	return nil
 }

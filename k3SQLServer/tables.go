@@ -7,8 +7,8 @@ const tableExists = "table already exists"
 const databaseNotExists = "database does not exists"
 
 func createTable(query *k3CreateQuery) error {
-	if databaseExists(query.database) {
-		if !existsTable(query.table, query.database) {
+	if databaseExists(query.table.database) {
+		if !existsTable(query.table) {
 			return createTableFile(query)
 		}
 		return errors.New(tableExists)
@@ -18,7 +18,7 @@ func createTable(query *k3CreateQuery) error {
 
 func insertTable(query *k3InsertQuery) error {
 	if databaseExists(query.table.database) {
-		if existsTable(query.table.name, query.table.database) {
+		if existsTable(query.table) {
 			return insertTableFile(query)
 		}
 		return errors.New(tableNotExists)
@@ -27,9 +27,9 @@ func insertTable(query *k3InsertQuery) error {
 }
 
 func selectTable(query *k3SelectQuery) error {
-	if databaseExists(query.database) {
-		if existsTable(query.table, query.database) {
-			return nil
+	if databaseExists(query.table.database) {
+		if existsTable(query.table) {
+			return selectTableFile(query)
 		}
 		return errors.New(tableNotExists)
 	}
