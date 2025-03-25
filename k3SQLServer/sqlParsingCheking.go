@@ -9,25 +9,28 @@ import (
 
 func checkQuery(queryStr string) bool {
 	parts := strings.Fields(queryStr)
-	part := parts[0]
-	switch strings.ToLower(part) {
-	case "select":
-		return checkSelectQuery(parts)
-	case "create":
-		return checkCreateQuery(parts)
-	case "drop":
-		return checkDropQuery(parts)
-	case "insert":
-		return checkInsertQuery(parts)
-	case "update":
-		return checkUpdateQuery(parts)
-	case "alter":
-		return checkAlterQuery(parts)
-	case "explain":
-		return checkQuery(queryStr[len(part):])
-	default:
-		return false
+	if len(parts) > 0 {
+		part := parts[0]
+		switch strings.ToLower(part) {
+		case "select":
+			return checkSelectQuery(parts)
+		case "create":
+			return checkCreateQuery(parts)
+		case "drop":
+			return checkDropQuery(parts)
+		case "insert":
+			return checkInsertQuery(parts)
+		case "update":
+			return checkUpdateQuery(parts)
+		case "alter":
+			return checkAlterQuery(parts)
+		case "explain":
+			return checkQuery(queryStr[len(part):])
+		default:
+			return false
+		}
 	}
+	return false
 }
 
 func checkSelectQuery(parts []string) bool {

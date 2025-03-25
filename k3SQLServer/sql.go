@@ -19,7 +19,7 @@ func Query(queryString string) error {
 			if err != nil {
 				return err
 			}
-			fmt.Println(parseOutput(resp))
+			fmt.Println(parseOutput(resp, query.table))
 		}
 		return err
 	case "create":
@@ -40,12 +40,12 @@ func Query(queryString string) error {
 }
 
 // THIS FUNCTION WOULD BE IN CLIENT-SIDE; ONLY FOR TEST HERE
-func parseOutput(resp []map[string]string) string {
+func parseOutput(resp []map[string]string, table *k3Table) string {
 	if len(resp) > 0 {
 		fields := make([]string, len(resp[0]))
 		cnt := 0
 		str := "|"
-		for k, _ := range resp[0] {
+		for _, k := range table.fields {
 			fields[cnt] = k
 			str += fmt.Sprintf(" %10s |", k)
 			cnt++
