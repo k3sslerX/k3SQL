@@ -15,7 +15,7 @@ TODO:
 | conditional select    | ❌      |
 | alter query           | ❌      |
 | tables constraints    | ❌      |
-| user table creating   | ❌      |
+| user table creating   | ✅      |
 | mutex support         | ✅      |
 | tables encrypting     | ❌      |
 | indexing optimization | ❌      |
