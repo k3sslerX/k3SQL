@@ -14,7 +14,7 @@ func Query(queryString string) error {
 	case "select":
 		query, err := parseSelectQuery(queryString)
 		if err == nil {
-			err = selectTable(query)
+			_, err = selectTable(query)
 		}
 		return err
 	case "create":

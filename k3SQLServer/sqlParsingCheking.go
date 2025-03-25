@@ -128,7 +128,7 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 			continue
 		}
 		if selectCond {
-			query.values = append(query.values, part)
+			query.values = append(query.values, strings.TrimSuffix(part, ","))
 		} else if fromCond {
 			table, ok := k3Tables[part]
 			if ok {
@@ -147,7 +147,7 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 		}
 	}
 	if (joinFlag && !onFlag) || (!joinFlag && onFlag) || len(query.values) == 0 {
-		return nil, errors.New("SQL syntax error")
+		return nil, errors.New(invalidSQLSyntax)
 	}
 	//if !joinFlag {
 	//	query.join = nil
@@ -173,16 +173,16 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 			continue
 		} else if strings.EqualFold(part, "not") {
 			if !ifFlag {
-				return nil, errors.New("SQL syntax error")
+				return nil, errors.New(invalidSQLSyntax)
 			}
 			notFlag = true
 			continue
 		} else if strings.EqualFold(part, "exists") {
 			if !ifFlag {
-				return nil, errors.New("SQL syntax error")
+				return nil, errors.New(invalidSQLSyntax)
 			}
 			if !notFlag {
-				return nil, errors.New("SQL logic error")
+				return nil, errors.New(invalidSQLLogic)
 			}
 			continue
 		}
@@ -212,7 +212,7 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 	for i := 0; i < len(fieldsPartsTypes); i++ {
 		fieldsParts := strings.Fields(fieldsPartsTypes[i])
 		if len(fieldsParts) != 2 {
-			return nil, errors.New("SQL syntax error")
+			return nil, errors.New(invalidSQLSyntax)
 		}
 		switch strings.ToUpper(fieldsParts[1]) {
 		case "INT":

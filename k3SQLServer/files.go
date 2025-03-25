@@ -127,12 +127,62 @@ func insertTableFile(query *k3InsertQuery) error {
 	return err
 }
 
-func selectTableFile(query *k3SelectQuery) error {
+func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 	query.table.mu.RLock()
 	defer query.table.mu.RUnlock()
-	fmt.Println("tablename:", query.table.name)
-	fmt.Println("database:", query.table.database)
-	fmt.Println("values:", query.values)
-	fmt.Println("condition:", query.condition)
-	return nil
+	fileRead, err := os.Open(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
+	defer fileRead.Close()
+	if err == nil {
+		scanner := bufio.NewScanner(fileRead)
+		scanner.Scan()
+		dataStr := scanner.Text()
+		parts := strings.Split(dataStr, "|")
+		tableTypes := make(map[string]int, len(parts))
+		tableFields := make([]string, 0)
+		for _, part := range parts {
+			tableType, err := strconv.Atoi(string(part[0]))
+			if err != nil {
+				return nil, err
+			}
+			tableTypes[part[2:]] = tableType
+			tableFields = append(tableFields, part[2:])
+		}
+		values := query.values
+		if len(values) > 0 {
+			if values[0] == "*" && len(values) == 1 {
+				values = values[1:]
+				for k, _ := range tableTypes {
+					values = append(values, k)
+				}
+			} else if values[0] == "*" {
+				return nil, errors.New(invalidSQLSyntax)
+			} else {
+				for _, value := range values {
+					flag := false
+					for k, _ := range tableTypes {
+						if value == k {
+							flag = true
+							break
+						}
+					}
+					if flag == false {
+						return nil, errors.New(fmt.Sprintf("invalid column: %s", value))
+					}
+				}
+			}
+			lines := make([]map[string]string, 0)
+			for scanner.Scan() {
+				lineParts := strings.Split(scanner.Text(), "|")
+				tmpMap := make(map[string]string, len(lineParts))
+				for i := 0; i < len(lineParts); i++ {
+					tmpMap[tableFields[i]] = lineParts[i]
+				}
+				lines = append(lines, tmpMap)
+			}
+			return lines, nil
+		} else {
+			return nil, errors.New(invalidSQLSyntax)
+		}
+	}
+	return nil, err
 }

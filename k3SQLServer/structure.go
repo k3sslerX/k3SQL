@@ -17,6 +17,8 @@ const k3TEXT = 3
 const tableNotExists = "table does not exists"
 const tableExists = "table already exists"
 const databaseNotExists = "database does not exists"
+const invalidSQLSyntax = "SQL syntax error"
+const invalidSQLLogic = "SQL logic error"
 
 // DEFAULT DATABASE NAME
 const databaseDefaultName = "k3db"

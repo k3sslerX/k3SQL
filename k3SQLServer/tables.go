@@ -22,12 +22,13 @@ func insertTable(query *k3InsertQuery) error {
 	return errors.New(databaseNotExists)
 }
 
-func selectTable(query *k3SelectQuery) error {
+func selectTable(query *k3SelectQuery) ([]map[string]string, error) {
 	if databaseExists(query.table.database) {
 		if existsTable(query.table) {
-			return selectTableFile(query)
+			resp, err := selectTableFile(query)
+			return resp, err
 		}
-		return errors.New(tableNotExists)
+		return nil, errors.New(tableNotExists)
 	}
-	return errors.New(databaseNotExists)
+	return nil, errors.New(databaseNotExists)
 }
