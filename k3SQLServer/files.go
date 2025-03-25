@@ -95,22 +95,34 @@ func insertTableFile(query *k3InsertQuery) error {
 			str := ""
 			for k, _ := range tableTypes {
 				if tableTypes[k] == k3INT {
-					v := value[k]
-					_, err := strconv.Atoi(v)
-					if err != nil {
-						return err
+					v, ok := value[k]
+					if ok {
+						_, err := strconv.Atoi(v)
+						if err != nil {
+							return err
+						}
+						str += v + "|"
+					} else {
+						return errors.New(fmt.Sprintf("empty column: %s", k))
 					}
-					str += v + "|"
 				} else if tableTypes[k] == k3FLOAT {
-					v := value[k]
-					_, err := strconv.ParseFloat(v, 64)
-					if err != nil {
-						return err
+					v, ok := value[k]
+					if ok {
+						_, err := strconv.ParseFloat(v, 64)
+						if err != nil {
+							return err
+						}
+						str += v + "|"
+					} else {
+						return errors.New(fmt.Sprintf("empty column: %s", k))
 					}
-					str += v + "|"
 				} else if tableTypes[k] == k3TEXT {
-					v := value[k]
-					str += v + "|"
+					v, ok := value[k]
+					if ok {
+						str += v + "|"
+					} else {
+						return errors.New(fmt.Sprintf("empty column: %s", k))
+					}
 				} else {
 					return errors.New("unknown type")
 				}
