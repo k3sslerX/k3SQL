@@ -325,6 +325,9 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 	for _, value := range valuesSlice {
 		tmpMap[cnt] = make(map[string]string, len(fieldsSlice))
 		valueParts := strings.Split(value, ",")
+		if len(fieldsSlice) != len(valueParts) {
+			return nil, errors.New(invalidSQLSyntax)
+		}
 		for i := 0; i < len(fieldsSlice); i++ {
 			tmpMap[cnt][fieldsSlice[i]] = valueParts[i]
 		}
