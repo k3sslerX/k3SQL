@@ -7,40 +7,6 @@ import (
 	"sync"
 )
 
-const databaseDefaultName = "k3db"
-
-type k3Table struct {
-	database string
-	name     string
-	//fields map[string]int
-	mu *sync.RWMutex
-}
-
-type k3join struct {
-	src       string
-	dst       string
-	condition string
-	typeJoin  int
-}
-
-type k3SelectQuery struct {
-	table     *k3Table
-	values    []string
-	condition string
-	//join      *k3join
-}
-
-type k3CreateQuery struct {
-	table       *k3Table
-	fields      map[string]int
-	constraints map[string]string
-}
-
-type k3InsertQuery struct {
-	table  *k3Table
-	values []map[string]string
-}
-
 func checkQuery(queryStr string) bool {
 	parts := strings.Fields(queryStr)
 	part := parts[0]

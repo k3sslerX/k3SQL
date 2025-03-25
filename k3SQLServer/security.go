@@ -7,10 +7,6 @@ import (
 	"sync"
 )
 
-const k3configurationPath = k3FilesPath + "config/"
-
-var k3Tables map[string]*k3Table
-
 func readAllFiles(rootDir string, callback func(path string, isDir bool) error) error {
 	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

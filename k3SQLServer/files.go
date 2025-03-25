@@ -9,13 +9,6 @@ import (
 	"strings"
 )
 
-const k3sqlDataPath = k3FilesPath + "data/"
-const extension = ".k3"
-
-const k3INT = 1
-const k3FLOAT = 2
-const k3TEXT = 3
-
 func createDatabase(name string) error {
 	return os.Mkdir(k3sqlDataPath+name, 0700)
 }

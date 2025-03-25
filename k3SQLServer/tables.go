@@ -2,10 +2,6 @@ package k3SQLServer
 
 import "errors"
 
-const tableNotExists = "table does not exists"
-const tableExists = "table already exists"
-const databaseNotExists = "database does not exists"
-
 func createTable(query *k3CreateQuery) error {
 	if databaseExists(query.table.database) {
 		if !existsTable(query.table) {
