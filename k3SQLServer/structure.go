@@ -27,8 +27,8 @@ const databaseDefaultName = "k3db"
 type k3Table struct {
 	database string
 	name     string
-	//fields map[string]int
-	mu *sync.RWMutex
+	fields   []string
+	mu       *sync.RWMutex
 }
 
 type k3join struct {

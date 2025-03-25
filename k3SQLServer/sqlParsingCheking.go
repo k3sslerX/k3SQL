@@ -209,6 +209,7 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 	}
 	fieldsPartsTypes := strings.Split(fieldsStr, ",")
 	fields := make(map[string]int, len(fieldsPartsTypes))
+	queryFields := make([]string, len(fieldsPartsTypes))
 	for i := 0; i < len(fieldsPartsTypes); i++ {
 		fieldsParts := strings.Fields(fieldsPartsTypes[i])
 		if len(fieldsParts) != 2 {
@@ -224,8 +225,10 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 		default:
 			return nil, errors.New(fmt.Sprintf("Invalid type: %s", fieldsParts[i+1]))
 		}
+		queryFields[i] = fieldsParts[0]
 	}
 	query.fields = fields
+	query.table.fields = queryFields
 	return query, nil
 }
 

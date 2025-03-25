@@ -44,8 +44,8 @@ func createTableFile(query *k3CreateQuery) error {
 	if err == nil {
 		writer := bufio.NewWriter(file)
 		str := ""
-		for k, v := range query.fields {
-			str += fmt.Sprintf("%d %s|", v, k)
+		for _, field := range query.table.fields {
+			str += fmt.Sprintf("%d %s|", query.fields[field], field)
 		}
 		_, err = writer.WriteString(strings.TrimSuffix(str, "|") + "\n")
 		if err != nil {
