@@ -207,3 +207,7 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 	}
 	return nil, err
 }
+
+func dropTableFile(table *k3Table) error {
+	return os.Remove(k3sqlDataPath + table.database + "/" + table.name + extension)
+}

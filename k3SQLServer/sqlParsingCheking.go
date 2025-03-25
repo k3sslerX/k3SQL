@@ -81,6 +81,33 @@ func checkCreateQuery(parts []string) bool {
 }
 
 func checkDropQuery(parts []string) bool {
+	tableFlag := false
+	ifFlag := false
+	for _, part := range parts {
+		if strings.EqualFold(part, "drop") {
+			continue
+		} else if strings.EqualFold(part, "table") {
+			tableFlag = true
+			continue
+		} else if strings.EqualFold(part, "if") {
+			if tableFlag {
+				ifFlag = true
+			} else {
+				return false
+			}
+			continue
+		} else if strings.EqualFold(part, "not") {
+			if ifFlag {
+				return false
+			}
+			continue
+		} else if strings.EqualFold(part, "exists") {
+			if ifFlag {
+				ifFlag = false
+			}
+			continue
+		}
+	}
 	return true
 }
 
@@ -305,4 +332,46 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 	}
 	query.values = tmpMap
 	return query, nil
+}
+
+func parseDropQuery(queryStr string) (*k3Table, error) {
+	parts := strings.Fields(queryStr)
+	tableFlag := false
+	ifFlag := false
+	for _, part := range parts {
+		if strings.EqualFold(part, "drop") {
+			continue
+		} else if strings.EqualFold(part, "table") {
+			tableFlag = true
+			continue
+		} else if strings.EqualFold(part, "if") {
+			if tableFlag {
+				ifFlag = true
+				tableFlag = false
+			} else {
+				return nil, errors.New(invalidSQLSyntax)
+			}
+			continue
+		} else if strings.EqualFold(part, "not") {
+			if ifFlag {
+				return nil, errors.New(invalidSQLLogic)
+			}
+			continue
+		} else if strings.EqualFold(part, "exists") {
+			if ifFlag {
+				ifFlag = false
+				tableFlag = true
+			}
+			continue
+		}
+		if tableFlag {
+			table, ok := k3Tables[part]
+			if ok {
+				return table, nil
+			} else {
+				return nil, errors.New(tableNotExists)
+			}
+		}
+	}
+	return nil, errors.New(invalidSQLSyntax)
 }

@@ -32,3 +32,17 @@ func selectTable(query *k3SelectQuery) ([]map[string]string, error) {
 	}
 	return nil, errors.New(databaseNotExists)
 }
+
+func dropTable(table *k3Table) error {
+	if databaseExists(table.database) {
+		if existsTable(table) {
+			err := dropTableFile(table)
+			if err == nil {
+				delete(k3Tables, table.name)
+			}
+			return err
+		}
+		return errors.New(tableNotExists)
+	}
+	return errors.New(databaseNotExists)
+}

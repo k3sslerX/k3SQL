@@ -34,6 +34,12 @@ func Query(queryString string) error {
 			err = insertTable(query)
 		}
 		return err
+	case "drop":
+		table, err := parseDropQuery(queryString)
+		if err == nil {
+			err = dropTable(table)
+		}
+		return err
 	default:
 		return errors.New("SQL invalid syntax")
 	}
