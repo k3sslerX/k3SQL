@@ -25,7 +25,13 @@ func StartService() error {
 				path = strings.TrimSuffix(path, extension)
 				fileParts := strings.Split(path, "/")
 				if len(fileParts) == 2 {
-					k3Tables[fileParts[1]] = &k3Table{name: fileParts[1], database: fileParts[0], mu: new(sync.RWMutex)}
+					table := &k3Table{name: fileParts[1], database: fileParts[0], mu: new(sync.RWMutex)}
+					err := addFieldsTableFile(table)
+					if err == nil {
+						k3Tables[fileParts[1]] = table
+					} else {
+						return err
+					}
 				}
 			}
 		}

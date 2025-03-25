@@ -38,6 +38,23 @@ func existsTable(table *k3Table) bool {
 	return false
 }
 
+func addFieldsTableFile(table *k3Table) error {
+	file, err := os.Open(k3sqlDataPath + table.database + "/" + table.name + extension)
+	if err == nil {
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		scanner.Scan()
+		dataStr := scanner.Text()
+		parts := strings.Split(dataStr, "|")
+		tableFields := make([]string, len(parts))
+		for i := 0; i < len(parts); i++ {
+			tableFields[i] = parts[i][2:]
+		}
+		table.fields = tableFields
+	}
+	return err
+}
+
 func createTableFile(query *k3CreateQuery) error {
 	file, err := os.Create(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
 	defer file.Close()
@@ -84,7 +101,7 @@ func insertTableFile(query *k3InsertQuery) error {
 		defer file.Close()
 		for _, value := range query.values {
 			str := ""
-			for k, _ := range tableTypes {
+			for _, k := range query.table.fields {
 				if tableTypes[k] == k3INT {
 					v, ok := value[k]
 					if ok {
@@ -138,20 +155,20 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 		dataStr := scanner.Text()
 		parts := strings.Split(dataStr, "|")
 		tableTypes := make(map[string]int, len(parts))
-		tableFields := make([]string, 0)
-		for _, part := range parts {
-			tableType, err := strconv.Atoi(string(part[0]))
-			if err != nil {
-				return nil, err
-			}
-			tableTypes[part[2:]] = tableType
-			tableFields = append(tableFields, part[2:])
-		}
+		tableFields := query.table.fields
+		//for _, part := range parts {
+		//	tableType, err := strconv.Atoi(string(part[0]))
+		//	if err != nil {
+		//		return nil, err
+		//	}
+		//	tableTypes[part[2:]] = tableType
+		//	tableFields = append(tableFields, part[2:])
+		//}
 		values := query.values
 		if len(values) > 0 {
 			if values[0] == "*" && len(values) == 1 {
 				values = values[1:]
-				for k, _ := range tableTypes {
+				for _, k := range tableFields {
 					values = append(values, k)
 				}
 			} else if values[0] == "*" {
