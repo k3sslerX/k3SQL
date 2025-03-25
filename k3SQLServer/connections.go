@@ -8,8 +8,6 @@ import (
 	"strconv"
 )
 
-const k3FilesPath = "k3SQL/"
-
 func connectServer() {
 	arguments := os.Args
 	port := 3003

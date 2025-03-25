@@ -3,6 +3,7 @@ package k3SQLServer
 import "sync"
 
 // FILES CONST
+const k3FilesPath = "k3SQL/"
 const k3configurationPath = k3FilesPath + "config/"
 const k3sqlDataPath = k3FilesPath + "data/"
 const extension = ".k3"
