@@ -10,12 +10,15 @@ import (
 func main() {
 	err := k3SQLServer.StartService()
 	if err == nil {
-		for err == nil {
+		var query string
+		for query != "exit\n" {
 			fmt.Print("Enter SQL query: ")
-			query, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+			query, _ = bufio.NewReader(os.Stdin).ReadString('\n')
 			fmt.Println(query)
 			err = k3SQLServer.Query(query)
+			fmt.Println(err)
 		}
+	} else {
+		fmt.Println(err)
 	}
-	fmt.Println(err)
 }
