@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const k3sqlDataPath = k3FilesPath + "data/"
@@ -62,12 +63,15 @@ func createTableFile(query *k3CreateQuery) error {
 		if err != nil {
 			return err
 		}
+		k3Tables[query.table] = &k3Table{database: query.database, name: query.table, mu: new(sync.RWMutex)}
 	}
 	return err
 }
 
 func insertTableFile(query *k3InsertQuery) error {
-	fileRead, err := os.Open(k3sqlDataPath + query.database + "/" + query.table + extension)
+	query.table.mu.Lock()
+	defer query.table.mu.Unlock()
+	fileRead, err := os.Open(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
 	if err == nil {
 		scanner := bufio.NewScanner(fileRead)
 		scanner.Scan()
@@ -82,7 +86,7 @@ func insertTableFile(query *k3InsertQuery) error {
 			}
 			tableTypes[part[2:]] = tableType
 		}
-		file, err := os.OpenFile(k3sqlDataPath+query.database+"/"+query.table+extension, os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(k3sqlDataPath+query.table.database+"/"+query.table.name+extension, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}

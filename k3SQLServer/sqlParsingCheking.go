@@ -31,9 +31,8 @@ type k3CreateQuery struct {
 }
 
 type k3InsertQuery struct {
-	database string
-	table    string
-	values   []map[string]string
+	table  *k3Table
+	values []map[string]string
 }
 
 func checkQuery(queryStr string) bool {
@@ -270,7 +269,7 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 			continue
 		}
 		if intoFlag {
-			query.table = part
+			query.table = k3Tables[part]
 			intoFlag = false
 			fieldsFlag = true
 			continue
@@ -316,6 +315,5 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 		cnt++
 	}
 	query.values = tmpMap
-	query.database = databaseDefaultName
 	return query, nil
 }

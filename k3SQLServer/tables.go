@@ -17,8 +17,8 @@ func createTable(query *k3CreateQuery) error {
 }
 
 func insertTable(query *k3InsertQuery) error {
-	if databaseExists(query.database) {
-		if existsTable(query.table, query.database) {
+	if databaseExists(query.table.database) {
+		if existsTable(query.table.name, query.table.database) {
 			return insertTableFile(query)
 		}
 		return errors.New(tableNotExists)
