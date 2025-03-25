@@ -229,7 +229,7 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 		if databaseFlag {
 			table := k3Table{name: "", database: part, mu: nil}
 			query.table = &table
-			return query, errors.New("database")
+			return query, nil
 		}
 	}
 	fieldsStr := ""
