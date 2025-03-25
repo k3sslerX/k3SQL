@@ -8,7 +8,7 @@ import (
 
 func Query(queryString string) error {
 	if !checkQuery(queryString) {
-		return errors.New("SQL invalid syntax")
+		return errors.New(invalidSQLSyntax)
 	}
 	queryParts := strings.Fields(queryString)
 	switch strings.ToLower(queryParts[0]) {
@@ -41,7 +41,7 @@ func Query(queryString string) error {
 		}
 		return err
 	default:
-		return errors.New("SQL invalid syntax")
+		return errors.New(invalidSQLSyntax)
 	}
 }
 
