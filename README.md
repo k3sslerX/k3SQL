@@ -9,7 +9,7 @@ TODO:
 | create query          | ✅      |
 | insert query          | ✅      |
 | drop query            | ❌      |
-| select query          | ❌      |
+| select query          | ✅      |
 | alter query           | ❌      |
 | tables constraints    | ❌      |
 | user table creating   | ❌      |
