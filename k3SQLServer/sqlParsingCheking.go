@@ -269,7 +269,12 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 			continue
 		}
 		if intoFlag {
-			query.table = k3Tables[part]
+			table, ok := k3Tables[part]
+			if ok {
+				query.table = table
+			} else {
+				return nil, errors.New(tableNotExists)
+			}
 			intoFlag = false
 			fieldsFlag = true
 			continue
