@@ -174,8 +174,12 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 			for scanner.Scan() {
 				lineParts := strings.Split(scanner.Text(), "|")
 				tmpMap := make(map[string]string, len(lineParts))
-				for i := 0; i < len(lineParts); i++ {
-					tmpMap[tableFields[i]] = lineParts[i]
+				valuesCnt := 0
+				for i := 0; i < len(lineParts) && valuesCnt < len(values); i++ {
+					if tableFields[i] == values[valuesCnt] {
+						tmpMap[tableFields[i]] = lineParts[i]
+						valuesCnt++
+					}
 				}
 				lines = append(lines, tmpMap)
 			}

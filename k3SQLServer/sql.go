@@ -16,9 +16,10 @@ func Query(queryString string) error {
 		query, err := parseSelectQuery(queryString)
 		if err == nil {
 			resp, err := selectTable(query)
-			if err == nil {
-				fmt.Println(parseOutput(resp))
+			if err != nil {
+				return err
 			}
+			fmt.Println(parseOutput(resp))
 		}
 		return err
 	case "create":
