@@ -11,7 +11,7 @@ func createTable(query *k3CreateQuery) error {
 			}
 			return err
 		}
-		return errors.New(tableExists)
+		return errors.New(tableAlreadyExists)
 	}
 	return errors.New(databaseNotExists)
 }

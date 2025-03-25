@@ -15,8 +15,9 @@ const k3TEXT = 3
 
 // ERROR MESSAGES
 const tableNotExists = "table does not exists"
-const tableExists = "table already exists"
+const tableAlreadyExists = "table already exists"
 const databaseNotExists = "database does not exists"
+const databaseAlreadyExists = "database already exists"
 const invalidSQLSyntax = "SQL syntax error"
 const invalidSQLLogic = "SQL logic error"
 
