@@ -8,7 +8,7 @@ TODO:
 |-----------------------|--------|
 | create query          | ✅      |
 | insert query          | ✅      |
-| drop query            | ❌      |
+| drop query            | ✅      |
 | select query          | ✅      |
 | conditional select    | ❌      |
 | alter query           | ❌      |
