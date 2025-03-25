@@ -31,18 +31,18 @@ type k3Table struct {
 	mu       *sync.RWMutex
 }
 
-type k3join struct {
-	src       string
-	dst       string
-	condition string
-	typeJoin  int
-}
-
 type k3SelectQuery struct {
 	table     *k3Table
 	values    []string
 	condition string
 	//join      *k3join
+}
+
+type k3join struct {
+	src       string
+	dst       string
+	condition string
+	typeJoin  int
 }
 
 type k3CreateQuery struct {
