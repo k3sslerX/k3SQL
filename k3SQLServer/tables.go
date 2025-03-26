@@ -7,7 +7,7 @@ func createTable(query *k3CreateQuery) error {
 		if !existsTable(query.table) {
 			err := createTableFile(query)
 			if err == nil {
-				k3Tables[query.table.name] = query.table
+				k3Tables[query.table.database+"."+query.table.name] = query.table
 			}
 			return err
 		}
@@ -45,7 +45,7 @@ func dropTable(table *k3Table) error {
 			}
 			err := dropTableFile(table)
 			if err == nil {
-				delete(k3Tables, table.name)
+				delete(k3Tables, table.database+"."+table.name)
 			}
 			return err
 		}

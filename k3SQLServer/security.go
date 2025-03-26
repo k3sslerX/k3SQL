@@ -29,7 +29,7 @@ func createDatabase(name string) error {
 			}
 			err = createTable(&query)
 			if err == nil {
-				k3Tables[table.name] = &table
+				k3Tables[table.database+"."+table.name] = &table
 			}
 			insertValues := make([]map[string]string, 1)
 			insertValues[0] = make(map[string]string, 2)
@@ -67,7 +67,7 @@ func StartService() error {
 					table := &k3Table{name: fileParts[1], database: fileParts[0], mu: new(sync.RWMutex)}
 					err := addFieldsTableFile(table)
 					if err == nil {
-						k3Tables[fileParts[1]] = table
+						k3Tables[table.database+"."+table.name] = table
 					} else {
 						return err
 					}

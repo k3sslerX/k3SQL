@@ -6,7 +6,11 @@ import (
 	"strings"
 )
 
-func Query(queryString string) error {
+func Query(queryString string, dbSlice ...string) error {
+	db := databaseDefaultName
+	if len(dbSlice) > 0 {
+		db = dbSlice[0]
+	}
 	queryString = strings.ToLower(queryString)
 	if !checkQuery(queryString) {
 		return errors.New(invalidSQLSyntax)
@@ -14,7 +18,7 @@ func Query(queryString string) error {
 	queryParts := strings.Fields(queryString)
 	switch strings.ToLower(queryParts[0]) {
 	case "select":
-		query, err := parseSelectQuery(queryString)
+		query, err := parseSelectQuery(queryString, db)
 		if err == nil {
 			resp, err := selectTable(query)
 			if err != nil {
@@ -24,7 +28,7 @@ func Query(queryString string) error {
 		}
 		return err
 	case "create":
-		query, err := parseCreateQuery(queryString)
+		query, err := parseCreateQuery(queryString, db)
 		if err == nil {
 			if len(query.table.name) > 0 {
 				err = createTable(query)

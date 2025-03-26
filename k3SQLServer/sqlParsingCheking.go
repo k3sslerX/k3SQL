@@ -63,7 +63,7 @@ func checkAlterQuery(query string) bool {
 	return true
 }
 
-func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
+func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3SelectQuery)
 	join := new(k3join)
@@ -100,7 +100,7 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 		if selectCond {
 			query.values = append(query.values, strings.TrimSuffix(part, ","))
 		} else if fromCond {
-			table, ok := k3Tables[part]
+			table, ok := k3Tables[db+"."+part]
 			if ok {
 				query.table = table
 			} else {
@@ -124,11 +124,11 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 	//} else {
 	//	query.join = join
 	//}
-	query.table.database = databaseDefaultName
+	query.table.database = db
 	return query, nil
 }
 
-func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
+func parseCreateQuery(queryStr, db string) (*k3CreateQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3CreateQuery)
 	tableFlag := false
@@ -162,7 +162,7 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 			continue
 		}
 		if tableFlag {
-			table := k3Table{name: part, database: databaseDefaultName, mu: new(sync.RWMutex)}
+			table := k3Table{name: part, database: db, mu: new(sync.RWMutex)}
 			query.table = &table
 			tableFlag = false
 		}
@@ -211,7 +211,7 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 	return query, nil
 }
 
-func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
+func parseInsertQuery(queryStr, db string) (*k3InsertQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3InsertQuery)
 	intoFlag := false
@@ -229,7 +229,7 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 			continue
 		}
 		if intoFlag {
-			table, ok := k3Tables[part]
+			table, ok := k3Tables[db+"."+part]
 			if ok {
 				query.table = table
 			} else {
@@ -286,7 +286,7 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 	return query, nil
 }
 
-func parseDropQuery(queryStr string) (*k3Table, error) {
+func parseDropQuery(queryStr, db string) (*k3Table, error) {
 	parts := strings.Fields(queryStr)
 	tableFlag := false
 	ifFlag := false
@@ -317,7 +317,7 @@ func parseDropQuery(queryStr string) (*k3Table, error) {
 			continue
 		}
 		if tableFlag {
-			table, ok := k3Tables[part]
+			table, ok := k3Tables[db+"."+part]
 			if ok {
 				return table, nil
 			} else {
