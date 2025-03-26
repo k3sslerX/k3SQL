@@ -21,12 +21,13 @@ func main() {
 				break
 			}
 			fmt.Println(query)
+			var resp string
 			if len(db) > 0 {
-				err = k3SQLServer.Query(query, db)
+				resp, err = k3SQLServer.Query(query, db)
 			} else {
-				err = k3SQLServer.Query(query)
+				resp, err = k3SQLServer.Query(query)
 			}
-			fmt.Println(err)
+			fmt.Println(resp)
 		}
 	} else {
 		fmt.Println(err)
