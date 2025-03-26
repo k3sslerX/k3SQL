@@ -3,6 +3,7 @@ package k3SQLServer
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -13,17 +14,17 @@ func checkQuery(queryStr string) bool {
 		part := parts[0]
 		switch strings.ToLower(part) {
 		case "select":
-			return checkSelectQuery(parts)
+			return checkSelectQuery(queryStr)
 		case "create":
-			return checkCreateQuery(parts)
+			return checkCreateQuery(queryStr)
 		case "drop":
-			return checkDropQuery(parts)
+			return checkDropQuery(queryStr)
 		case "insert":
-			return checkInsertQuery(parts)
+			return checkInsertQuery(queryStr)
 		case "update":
-			return checkUpdateQuery(parts)
+			return checkUpdateQuery(queryStr)
 		case "alter":
-			return checkAlterQuery(parts)
+			return checkAlterQuery(queryStr)
 		case "explain":
 			return checkQuery(queryStr[len(part):])
 		default:
@@ -33,97 +34,36 @@ func checkQuery(queryStr string) bool {
 	return false
 }
 
-func checkSelectQuery(parts []string) bool {
-	selectFlag := false
-	fromFlag := false
-	joinFlag := false
-	orderFlag := false
-	for _, part := range parts {
-		if strings.EqualFold(part, "select") {
-			selectFlag = true
-		} else if strings.EqualFold(part, "from") {
-			if !selectFlag {
-				return false
-			}
-			fromFlag = true
-		} else if strings.EqualFold(part, "join") {
-			if !selectFlag || !fromFlag {
-				return false
-			}
-			joinFlag = true
-		} else if strings.EqualFold(part, "on") {
-			if !selectFlag || !fromFlag || !joinFlag {
-				return false
-			}
-		} else if strings.EqualFold(part, "where") {
-			if !selectFlag || !fromFlag {
-				return false
-			}
-		} else if strings.EqualFold(part, "order") {
-			if !selectFlag || !fromFlag {
-				return false
-			}
-			orderFlag = true
-		} else if strings.EqualFold(part, "by") {
-			if !selectFlag || !fromFlag || !orderFlag {
-				return false
-			}
-		}
-	}
-	if selectFlag && fromFlag {
-		return true
-	}
-	return false
+func checkSelectQuery(query string) bool {
+	selectRegex := regexp.MustCompile(`(?is)^\s*SELECT\s+(?:(?:DISTINCT|ALL)\s+)?(?:[\w*]+(?:\s*,\s*[\w*]+)*|\*)\s+FROM\s+\w+(?:\s+(?:AS\s+)?\w+)?(?:\s+(?:INNER\s+|LEFT\s+|RIGHT\s+|FULL\s+)?JOIN\s+\w+(?:\s+(?:AS\s+)?\w+)?\s+ON\s+[^;]+)?(?:\s+WHERE\s+[^;]+)?(?:\s+GROUP\s+BY\s+[^;]+)?(?:\s+HAVING\s+[^;]+)?(?:\s+ORDER\s+BY\s+[^;]+)?(?:\s+(?:LIMIT\s+\d+(?:\s*,\s*\d+|\s+OFFSET\s+\d+)?)?)?\s*;?\s*$`)
+	return selectRegex.MatchString(query)
 }
 
-func checkCreateQuery(parts []string) bool {
+func checkCreateQuery(query string) bool {
+	createRegex := regexp.MustCompile(`(?i)^\s*CREATE\s+(TEMPORARY\s+)?(TABLE\s+(IF\s+NOT\s+EXISTS\s+)?([` + "`" + `"]?\w+[` + "`" + `"]?\.)?[` + "`" + `"]?\w+[` + "`" + `"]?\s*\(.*\)|(DATABASE|SCHEMA)\s+(IF\s+NOT\s+EXISTS\s+)?[` + "`" + `"]?\w+[` + "`" + `"]?)\s*(;)?\s*$`)
+	return createRegex.MatchString(query)
+}
+
+func checkDropQuery(query string) bool {
+	dropRegex := regexp.MustCompile(`(?i)^\s*DROP\s+(TABLE|DATABASE|SCHEMA|INDEX|VIEW|TRIGGER|PROCEDURE|FUNCTION)\s+(IF\s+EXISTS\s+)?([` + "`" + `"]?\w+[` + "`" + `"]?\.)?[` + "`" + `"]?\w+[` + "`" + `"]?\s*(;)?\s*$`)
+	return dropRegex.MatchString(query)
+}
+
+func checkInsertQuery(query string) bool {
+	insertRegex := regexp.MustCompile(`(?is)^\s*INSERT\s+(?:IGNORE\s+)?INTO\s+\w+\s*\(\s*\w+(?:\s*,\s*\w+)*\s*\)\s*VALUES\s*\([^)]+\)(?:\s*,\s*\([^)]+\))*\s*;?\s*$`)
+	return insertRegex.MatchString(query)
+}
+
+func checkUpdateQuery(query string) bool {
+	updateRegex := regexp.MustCompile(`(?is)^\s*UPDATE\s+(?:\w+\s+(?:AS\s+)?\w+\s*,\s*)*\w+\s+(?:AS\s+)?\w*\s+SET\s+\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+)(?:\s*,\s*\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+))*\s+(?:WHERE\s+.+?)?\s*;?\s*$`)
+	return updateRegex.MatchString(query)
+}
+
+func checkAlterQuery(query string) bool {
 	return true
 }
 
-func checkDropQuery(parts []string) bool {
-	tableFlag := false
-	ifFlag := false
-	for _, part := range parts {
-		if strings.EqualFold(part, "drop") {
-			continue
-		} else if strings.EqualFold(part, "table") {
-			tableFlag = true
-			continue
-		} else if strings.EqualFold(part, "if") {
-			if tableFlag {
-				ifFlag = true
-			} else {
-				return false
-			}
-			continue
-		} else if strings.EqualFold(part, "not") {
-			if ifFlag {
-				return false
-			}
-			continue
-		} else if strings.EqualFold(part, "exists") {
-			if ifFlag {
-				ifFlag = false
-			}
-			continue
-		}
-	}
-	return true
-}
-
-func checkInsertQuery(parts []string) bool {
-	return true
-}
-
-func checkUpdateQuery(parts []string) bool {
-	return true
-}
-
-func checkAlterQuery(parts []string) bool {
-	return true
-}
-
-func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
+func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3SelectQuery)
 	join := new(k3join)
@@ -160,7 +100,7 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 		if selectCond {
 			query.values = append(query.values, strings.TrimSuffix(part, ","))
 		} else if fromCond {
-			table, ok := k3Tables[part]
+			table, ok := k3Tables[db+"."+part]
 			if ok {
 				query.table = table
 			} else {
@@ -184,17 +124,22 @@ func parseSelectQuery(queryStr string) (*k3SelectQuery, error) {
 	//} else {
 	//	query.join = join
 	//}
-	query.table.database = databaseDefaultName
+	query.table.database = db
 	return query, nil
 }
 
-func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
+func parseCreateQuery(queryStr, db string) (*k3CreateQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3CreateQuery)
 	tableFlag := false
 	ifFlag := false
 	notFlag := false
+	databaseFlag := false
 	for _, part := range parts {
+		if strings.EqualFold(part, "database") {
+			databaseFlag = true
+			continue
+		}
 		if strings.EqualFold(part, "table") {
 			tableFlag = true
 			continue
@@ -217,10 +162,14 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 			continue
 		}
 		if tableFlag {
-			table := k3Table{name: part, database: databaseDefaultName, mu: new(sync.RWMutex)}
-			k3Tables[part] = &table
+			table := k3Table{name: part, database: db, mu: new(sync.RWMutex)}
 			query.table = &table
 			tableFlag = false
+		}
+		if databaseFlag {
+			table := k3Table{name: "", database: part, mu: nil}
+			query.table = &table
+			return query, nil
 		}
 	}
 	fieldsStr := ""
@@ -262,7 +211,7 @@ func parseCreateQuery(queryStr string) (*k3CreateQuery, error) {
 	return query, nil
 }
 
-func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
+func parseInsertQuery(queryStr, db string) (*k3InsertQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3InsertQuery)
 	intoFlag := false
@@ -280,7 +229,7 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 			continue
 		}
 		if intoFlag {
-			table, ok := k3Tables[part]
+			table, ok := k3Tables[db+"."+part]
 			if ok {
 				query.table = table
 			} else {
@@ -337,7 +286,7 @@ func parseInsertQuery(queryStr string) (*k3InsertQuery, error) {
 	return query, nil
 }
 
-func parseDropQuery(queryStr string) (*k3Table, error) {
+func parseDropQuery(queryStr, db string) (*k3Table, error) {
 	parts := strings.Fields(queryStr)
 	tableFlag := false
 	ifFlag := false
@@ -368,7 +317,7 @@ func parseDropQuery(queryStr string) (*k3Table, error) {
 			continue
 		}
 		if tableFlag {
-			table, ok := k3Tables[part]
+			table, ok := k3Tables[db+"."+part]
 			if ok {
 				return table, nil
 			} else {

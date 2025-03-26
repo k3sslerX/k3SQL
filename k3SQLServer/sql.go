@@ -6,46 +6,66 @@ import (
 	"strings"
 )
 
-func Query(queryString string) error {
+func Query(queryString string, dbSlice ...string) (string, error) {
+	db := databaseDefaultName
+	if len(dbSlice) > 0 {
+		db = dbSlice[0]
+	}
+	queryString = strings.ToLower(queryString)
 	if !checkQuery(queryString) {
-		return errors.New(invalidSQLSyntax)
+		return "error", errors.New(invalidSQLSyntax)
 	}
 	queryParts := strings.Fields(queryString)
 	switch strings.ToLower(queryParts[0]) {
 	case "select":
-		query, err := parseSelectQuery(queryString)
+		query, err := parseSelectQuery(queryString, db)
 		if err == nil {
 			resp, err := selectTable(query)
-			if err != nil {
-				return err
+			if err == nil {
+				out := parseOutput(resp, query.table)
+				return out, err
 			}
-			fmt.Println(parseOutput(resp, query.table))
 		}
-		return err
+		return "error", err
 	case "create":
-		query, err := parseCreateQuery(queryString)
+		query, err := parseCreateQuery(queryString, db)
 		if err == nil {
-			err = createTable(query)
+			if len(query.table.name) > 0 {
+				err = createTable(query)
+				if err == nil {
+					return "done", err
+				}
+			} else {
+				err = createDatabase(query.table.database)
+				if err == nil {
+					return "done", err
+				}
+			}
 		}
-		return err
+		return "error", err
 	case "insert":
-		query, err := parseInsertQuery(queryString)
+		query, err := parseInsertQuery(queryString, db)
 		if err == nil {
 			err = insertTable(query)
+			if err == nil {
+				return "done", err
+			}
 		}
-		return err
+		return "error", err
 	case "drop":
-		table, err := parseDropQuery(queryString)
+		table, err := parseDropQuery(queryString, db)
 		if err == nil {
 			err = dropTable(table)
+			if err == nil {
+				return "done", err
+			}
 		}
-		return err
+		return "error", err
 	default:
-		return errors.New(invalidSQLSyntax)
+		return "error", errors.New(invalidSQLSyntax)
 	}
 }
 
-// THIS FUNCTION WOULD BE IN CLIENT-SIDE; ONLY FOR TEST HERE
 func parseOutput(resp []map[string]string, table *k3Table) string {
 	if len(resp) > 0 {
 		fields := make([]string, len(resp[0]))

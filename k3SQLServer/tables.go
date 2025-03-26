@@ -5,9 +5,13 @@ import "errors"
 func createTable(query *k3CreateQuery) error {
 	if databaseExists(query.table.database) {
 		if !existsTable(query.table) {
-			return createTableFile(query)
+			err := createTableFile(query)
+			if err == nil {
+				k3Tables[query.table.database+"."+query.table.name] = query.table
+			}
+			return err
 		}
-		return errors.New(tableExists)
+		return errors.New(tableAlreadyExists)
 	}
 	return errors.New(databaseNotExists)
 }
@@ -36,9 +40,12 @@ func selectTable(query *k3SelectQuery) ([]map[string]string, error) {
 func dropTable(table *k3Table) error {
 	if databaseExists(table.database) {
 		if existsTable(table) {
+			if table.name == "users" {
+				return errors.New(accessDenied)
+			}
 			err := dropTableFile(table)
 			if err == nil {
-				delete(k3Tables, table.name)
+				delete(k3Tables, table.database+"."+table.name)
 			}
 			return err
 		}
