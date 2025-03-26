@@ -7,6 +7,7 @@ import (
 )
 
 func Query(queryString string) error {
+	queryString = strings.ToLower(queryString)
 	if !checkQuery(queryString) {
 		return errors.New(invalidSQLSyntax)
 	}
