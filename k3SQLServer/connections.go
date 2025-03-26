@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func connectServer() {
+func ConnectServer() {
 	arguments := os.Args
 	port := 3003
 	if len(arguments) > 1 {
@@ -26,12 +26,27 @@ func connectServer() {
 		return
 	}
 	defer conn.Close()
+	err = StartService()
+	if err != nil {
+		fmt.Println("error while starting k3SQL service")
+		return
+	}
+	fmt.Printf("k3SQL service started on port %d\n", port)
 	for {
-		buf := make([]byte, 1024)
+		buf := make([]byte, 2048)
 		n, _, err := conn.ReadFromUDP(buf)
 		if err != nil {
 			log.Println(err)
 		}
-		fmt.Println("Получено: ", string(buf[:n]))
+		query := string(buf[:n])
+		fmt.Println("Получено: ", query)
+		go func() {
+			resp, err := Query(query)
+			if err == nil {
+				fmt.Println(resp)
+			} else {
+				fmt.Println(err)
+			}
+		}()
 	}
 }
