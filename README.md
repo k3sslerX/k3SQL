@@ -26,7 +26,8 @@ TODO:
 
 ## Client
 
-| task              | status |
-|-------------------|--------|
-| connect to server | ❌      |
-| user support      | ❌      |
+| task                      | status |
+|---------------------------|--------|
+| connect to server         | ✅      |
+| manipulate db from client | ❌      |
+| user support              | ❌      |
