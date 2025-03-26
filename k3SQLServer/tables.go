@@ -40,6 +40,9 @@ func selectTable(query *k3SelectQuery) ([]map[string]string, error) {
 func dropTable(table *k3Table) error {
 	if databaseExists(table.database) {
 		if existsTable(table) {
+			if table.name == "users" {
+				return errors.New(accessDenied)
+			}
 			err := dropTableFile(table)
 			if err == nil {
 				delete(k3Tables, table.name)

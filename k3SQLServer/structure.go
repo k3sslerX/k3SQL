@@ -20,6 +20,7 @@ const databaseNotExists = "database does not exists"
 const databaseAlreadyExists = "database already exists"
 const invalidSQLSyntax = "SQL syntax error"
 const invalidSQLLogic = "SQL logic error"
+const accessDenied = "access denied"
 
 // DEFAULT DATABASE NAME
 const databaseDefaultName = "k3db"
