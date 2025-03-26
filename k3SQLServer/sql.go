@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Query(queryString string, dbSlice ...string) (string, error) {
+func querySQL(queryString string, dbSlice ...string) (string, error) {
 	db := databaseDefaultName
 	if len(dbSlice) > 0 {
 		db = dbSlice[0]
