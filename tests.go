@@ -27,7 +27,11 @@ func main() {
 			} else {
 				resp, err = k3SQLServer.Query(query)
 			}
-			fmt.Println(resp)
+			if err == nil {
+				fmt.Println(resp)
+			} else {
+				fmt.Println(err)
+			}
 		}
 	} else {
 		fmt.Println(err)
