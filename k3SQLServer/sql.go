@@ -38,13 +38,13 @@ func Query(queryString string, dbSlice ...string) error {
 		}
 		return err
 	case "insert":
-		query, err := parseInsertQuery(queryString)
+		query, err := parseInsertQuery(queryString, db)
 		if err == nil {
 			err = insertTable(query)
 		}
 		return err
 	case "drop":
-		table, err := parseDropQuery(queryString)
+		table, err := parseDropQuery(queryString, db)
 		if err == nil {
 			err = dropTable(table)
 		}
