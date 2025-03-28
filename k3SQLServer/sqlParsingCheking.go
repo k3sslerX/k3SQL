@@ -120,9 +120,9 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 		return nil, errors.New(invalidSQLSyntax)
 	}
 	//if !joinFlag {
-	//	query.join = nil
+	//	querySQL.join = nil
 	//} else {
-	//	query.join = join
+	//	querySQL.join = join
 	//}
 	query.table.database = db
 	return query, nil

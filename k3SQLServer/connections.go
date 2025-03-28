@@ -17,7 +17,7 @@ func handleConnection(conn net.Conn) {
 			}
 			return
 		}
-		result, err := query(queryStr)
+		result, err := querySQL(queryStr)
 		if err == nil {
 			_, err = fmt.Fprintln(conn, result)
 		} else {
