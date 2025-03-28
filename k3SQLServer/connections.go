@@ -1,37 +1,55 @@
 package k3SQLServer
 
 import (
+	"bufio"
 	"fmt"
-	"log"
 	"net"
-	"os"
-	"strconv"
 )
 
-func connectServer() {
-	arguments := os.Args
-	port := 3003
-	if len(arguments) > 1 {
-		tmp, err := strconv.Atoi(arguments[1])
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
+	for {
+		queryStr, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Printf("usage: %s [port]\n", arguments[0])
+			if err.Error() != "EOF" {
+				fmt.Println("Reading error:", err)
+			}
 			return
+		}
+		result, err := query(queryStr)
+		if err == nil {
+			_, err = fmt.Fprintln(conn, result)
 		} else {
-			port = tmp
+			_, err = fmt.Fprintln(conn, err)
+		}
+		if err != nil {
+			fmt.Println("Sending error:", err)
+			return
 		}
 	}
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: port})
+}
+
+func ConnectServer(host, port string) {
+	err := startService()
 	if err != nil {
-		fmt.Println("error while establishing server")
+		fmt.Println("Can't start K3SQLServer service")
 		return
 	}
-	defer conn.Close()
+	serverAddr := host + ":" + port
+	listener, err := net.Listen("tcp", serverAddr)
+	if err != nil {
+		fmt.Println("Server not started. Error:", err)
+		return
+	}
+	defer listener.Close()
+	fmt.Println("K3SQLServer started on", serverAddr)
 	for {
-		buf := make([]byte, 1024)
-		n, _, err := conn.ReadFromUDP(buf)
+		conn, err := listener.Accept()
 		if err != nil {
-			log.Println(err)
+			fmt.Println("Connection error:", err)
+			continue
 		}
-		fmt.Println("Получено: ", string(buf[:n]))
+		go handleConnection(conn)
 	}
 }
