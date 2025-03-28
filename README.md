@@ -27,6 +27,7 @@ TODO:
 | meta data query       | ❌      |
 | reliability           | ❌      |
 | transactions          | ❌      |
+| user authentication   | ❌      |
 
 ## Client
 
@@ -35,3 +36,4 @@ TODO:
 | connect to server         | ✅      |
 | manipulate db from client | ❌      |
 | user support              | ❌      |
+| user authentication       | ❌      |
