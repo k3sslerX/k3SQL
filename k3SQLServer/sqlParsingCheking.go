@@ -63,71 +63,6 @@ func checkAlterQuery(query string) bool {
 	return true
 }
 
-func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
-	parts := strings.Fields(queryStr)
-	query := new(k3SelectQuery)
-	join := new(k3join)
-	query.values = make([]string, 0)
-	selectCond := false
-	fromCond := false
-	whereCond := false
-	joinCond := false
-	joinFlag := false
-	onCond := false
-	onFlag := false
-	for _, part := range parts {
-		if strings.EqualFold(part, "select") {
-			selectCond = true
-			continue
-		} else if strings.EqualFold(part, "from") {
-			fromCond = true
-			selectCond = false
-			continue
-		} else if strings.EqualFold(part, "join") {
-			joinCond = true
-			joinFlag = true
-			continue
-		} else if strings.EqualFold(part, "on") {
-			joinCond = false
-			onCond = true
-			onFlag = true
-			continue
-		} else if strings.EqualFold(part, "where") {
-			onCond = false
-			whereCond = true
-			continue
-		}
-		if selectCond {
-			query.values = append(query.values, strings.TrimSuffix(part, ","))
-		} else if fromCond {
-			table, ok := k3Tables[db+"."+part]
-			if ok {
-				query.table = table
-			} else {
-				return nil, errors.New(tableNotExists)
-			}
-			fromCond = false
-		} else if whereCond {
-			query.condition += part
-		} else if joinCond {
-			join.src = query.table.name
-			join.dst = part
-		} else if onCond {
-			join.condition += part
-		}
-	}
-	if (joinFlag && !onFlag) || (!joinFlag && onFlag) || len(query.values) == 0 {
-		return nil, errors.New(invalidSQLSyntax)
-	}
-	//if !joinFlag {
-	//	querySQL.join = nil
-	//} else {
-	//	querySQL.join = join
-	//}
-	query.table.database = db
-	return query, nil
-}
-
 func parseCreateQuery(queryStr, db string) (*k3CreateQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3CreateQuery)
@@ -326,4 +261,113 @@ func parseDropQuery(queryStr, db string) (*k3Table, error) {
 		}
 	}
 	return nil, errors.New(invalidSQLSyntax)
+}
+
+func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(k3SelectQuery)
+	query.values = make([]string, 0)
+	query.conditions = make([]condition, 0)
+
+	selectCond := false
+	fromCond := false
+	whereCond := false
+	var whereParts []string
+
+	for _, part := range parts {
+		part = strings.TrimSuffix(part, ",")
+		upperPart := strings.ToUpper(part)
+
+		switch upperPart {
+		case "SELECT":
+			selectCond = true
+			fromCond = false
+			whereCond = false
+		case "FROM":
+			fromCond = true
+			selectCond = false
+			whereCond = false
+		case "WHERE":
+			whereCond = true
+			fromCond = false
+			selectCond = false
+		default:
+			if selectCond {
+				query.values = append(query.values, part)
+			} else if fromCond {
+				table, ok := k3Tables[db+"."+part]
+				if !ok {
+					return nil, errors.New(tableNotExists)
+				}
+				query.table = table
+			} else if whereCond {
+				whereParts = append(whereParts, part)
+			}
+		}
+	}
+	if len(whereParts) > 0 {
+		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
+		if err != nil {
+			return nil, err
+		}
+		query.conditions = conditions
+	}
+
+	return query, nil
+}
+
+func parseWhereClause(whereClause string) ([]condition, error) {
+	var conditions []condition
+	andParts := strings.Split(whereClause, "AND")
+	for _, part := range andParts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		cond, err := parseSingleCondition(part)
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, cond)
+	}
+
+	return conditions, nil
+}
+
+func parseSingleCondition(condStr string) (condition, error) {
+	if likeIdx := strings.Index(strings.ToUpper(condStr), "LIKE "); likeIdx >= 0 {
+		column := strings.TrimSpace(condStr[:likeIdx])
+		value := strings.TrimSpace(condStr[likeIdx+5:])
+
+		if len(value) > 0 && (value[0] == '\'' || value[0] == '"') {
+			value = strings.Trim(value, "'\"")
+		}
+
+		return condition{
+			Column:   column,
+			Operator: "LIKE",
+			Value:    value,
+		}, nil
+	}
+
+	operators := []string{">=", "<=", "=", "!=", ">", "<"}
+
+	for _, op := range operators {
+		if opIdx := strings.Index(condStr, op); opIdx >= 0 {
+			column := strings.TrimSpace(condStr[:opIdx])
+			value := strings.TrimSpace(condStr[opIdx+len(op):])
+
+			if len(value) > 0 && (value[0] == '\'' || value[0] == '"') {
+				value = strings.Trim(value, "'\"")
+			}
+
+			return condition{
+				Column:   column,
+				Operator: op,
+				Value:    value,
+			}, nil
+		}
+	}
+
+	return condition{}, errors.New(invalidSQLSyntax)
 }
