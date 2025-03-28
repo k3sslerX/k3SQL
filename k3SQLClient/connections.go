@@ -47,7 +47,7 @@ func Connect(server K3Server) (*K3Connection, error) {
 
 	conn, err := net.DialTimeout("tcp", serverAddr, connTimeout)
 	if err != nil {
-		return nil, errors.New(ConnectionError)
+		return nil, err //errors.New(ConnectionError)
 	}
 
 	con := K3Connection{
