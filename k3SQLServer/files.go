@@ -146,6 +146,8 @@ func insertTableFile(query *k3InsertQuery) error {
 }
 
 func dropTableFile(table *k3Table) error {
+	table.mu.Lock()
+	defer table.mu.Unlock()
 	return os.Remove(k3sqlDataPath + table.database + "/" + table.name + extension)
 }
 
