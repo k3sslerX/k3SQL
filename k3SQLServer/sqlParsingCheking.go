@@ -23,6 +23,8 @@ func checkQuery(queryStr string) bool {
 			return checkInsertQuery(queryStr)
 		case "update":
 			return checkUpdateQuery(queryStr)
+		case "delete":
+			return checkDeleteQuery(queryStr)
 		case "alter":
 			return checkAlterQuery(queryStr)
 		case "explain":
@@ -55,8 +57,13 @@ func checkInsertQuery(query string) bool {
 }
 
 func checkUpdateQuery(query string) bool {
-	updateRegex := regexp.MustCompile(`(?is)^\s*UPDATE\s+(?:\w+\s+(?:AS\s+)?\w+\s*,\s*)*\w+\s+(?:AS\s+)?\w*\s+SET\s+\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+)(?:\s*,\s*\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+))*\s+(?:WHERE\s+.+?)?\s*;?\s*$`)
+	updateRegex := regexp.MustCompile(`(?is)^\s*UPDATE\s+\w+\s+SET\s+[^;]+(?:\s+WHERE\s+[^;]+)?\s*;?\s*$`)
 	return updateRegex.MatchString(query)
+}
+
+func checkDeleteQuery(query string) bool {
+	deleteRegex := regexp.MustCompile(`(?is)^\s*DELETE\s+FROM\s+\w+(?:\s+WHERE\s+[^;]+)?\s*;?\s*$`)
+	return deleteRegex.MatchString(query)
 }
 
 func checkAlterQuery(query string) bool {
@@ -221,6 +228,72 @@ func parseInsertQuery(queryStr, db string) (*k3InsertQuery, error) {
 	return query, nil
 }
 
+func parseUpdateQuery(queryStr, db string) (*k3UpdateQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := &k3UpdateQuery{
+		setValues:  make(map[string]string),
+		conditions: make([]condition, 0),
+	}
+
+	updateFlag := true
+	setFlag := false
+	whereFlag := false
+	var whereParts []string
+	var setParts []string
+
+	for i := 0; i < len(parts); i++ {
+		part := strings.TrimSuffix(parts[i], ",")
+		upperPart := strings.ToUpper(part)
+
+		switch upperPart {
+		case "UPDATE":
+			continue
+		case "SET":
+			updateFlag = false
+			setFlag = true
+			whereFlag = false
+		case "WHERE":
+			setFlag = false
+			whereFlag = true
+			updateFlag = false
+		default:
+			if updateFlag {
+				table, ok := k3Tables[db+"."+part]
+				if !ok {
+					return nil, errors.New(tableNotExists)
+				}
+				query.table = table
+			} else if setFlag {
+				setParts = append(setParts, part)
+			} else if whereFlag {
+				whereParts = append(whereParts, part)
+			}
+		}
+	}
+	setClause := strings.Join(setParts, " ")
+	setPairs := strings.Split(setClause, ",")
+	for _, pair := range setPairs {
+		pair = strings.TrimSpace(pair)
+		if eqIdx := strings.Index(pair, "="); eqIdx > 0 {
+			column := strings.TrimSpace(pair[:eqIdx])
+			value := strings.TrimSpace(pair[eqIdx+1:])
+			if len(value) > 0 && (value[0] == '\'' || value[0] == '"') {
+				value = strings.Trim(value, "'\"")
+			}
+			query.setValues[column] = value
+		}
+	}
+	if len(whereParts) > 0 {
+		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
+		if err != nil {
+			return nil, err
+		}
+		query.conditions = conditions
+	}
+
+	return query, nil
+}
+
 func parseDropQuery(queryStr, db string) (*k3Table, error) {
 	parts := strings.Fields(queryStr)
 	tableFlag := false
@@ -305,6 +378,53 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 			}
 		}
 	}
+	if len(whereParts) > 0 {
+		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
+		if err != nil {
+			return nil, err
+		}
+		query.conditions = conditions
+	}
+
+	return query, nil
+}
+
+func parseDeleteQuery(queryStr, db string) (*k3DeleteQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(k3DeleteQuery)
+	query.conditions = make([]condition, 0)
+
+	fromFlag := false
+	whereFlag := false
+	var whereParts []string
+
+	for _, part := range parts {
+		part = strings.TrimSuffix(part, ",")
+		upperPart := strings.ToUpper(part)
+
+		switch upperPart {
+		case "DELETE":
+			continue
+		case "FROM":
+			fromFlag = true
+			whereFlag = false
+		case "WHERE":
+			whereFlag = true
+			fromFlag = false
+		default:
+			if fromFlag {
+				table, ok := k3Tables[db+"."+part]
+				if !ok {
+					return nil, errors.New(tableNotExists)
+				}
+				query.table = table
+				fromFlag = false
+			} else if whereFlag {
+				whereParts = append(whereParts, part)
+			}
+		}
+	}
+
 	if len(whereParts) > 0 {
 		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
 		if err != nil {

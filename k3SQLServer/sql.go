@@ -52,12 +52,30 @@ func querySQL(queryString string, dbSlice ...string) (string, error) {
 			}
 		}
 		return "error", err
+	case "update":
+		query, err := parseUpdateQuery(queryString, db)
+		if err == nil {
+			count, err := updateTable(query)
+			if err == nil {
+				return fmt.Sprintf("%d rows updated", count), nil
+			}
+		}
+		return "error", err
 	case "drop":
 		table, err := parseDropQuery(queryString, db)
 		if err == nil {
 			err = dropTable(table)
 			if err == nil {
 				return "done", err
+			}
+		}
+		return "error", err
+	case "delete":
+		query, err := parseDeleteQuery(queryString, db)
+		if err == nil {
+			count, err := deleteTable(query)
+			if err == nil {
+				return fmt.Sprintf("%d rows deleted", count), nil
 			}
 		}
 		return "error", err

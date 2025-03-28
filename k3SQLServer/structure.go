@@ -40,6 +40,17 @@ type k3SelectQuery struct {
 	//join      *k3join
 }
 
+type k3DeleteQuery struct {
+	table      *k3Table
+	conditions []condition
+}
+
+type k3UpdateQuery struct {
+	table      *k3Table
+	setValues  map[string]string
+	conditions []condition
+}
+
 type condition struct {
 	Column   string
 	Operator string
