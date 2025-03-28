@@ -198,7 +198,7 @@ func parseRecord(line string, fields []string) map[string]string {
 	return record
 }
 
-func satisfiesConditions(record map[string]string, conditions []Condition) bool {
+func satisfiesConditions(record map[string]string, conditions []condition) bool {
 	for _, cond := range conditions {
 		recordValue, ok := record[cond.Column]
 		if !ok {

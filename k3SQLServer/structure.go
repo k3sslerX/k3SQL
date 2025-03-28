@@ -36,11 +36,11 @@ type k3Table struct {
 type k3SelectQuery struct {
 	table      *k3Table
 	values     []string
-	conditions []Condition
+	conditions []condition
 	//join      *k3join
 }
 
-type Condition struct {
+type condition struct {
 	Column   string
 	Operator string
 	Value    string

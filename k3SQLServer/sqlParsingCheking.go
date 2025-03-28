@@ -267,7 +267,7 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3SelectQuery)
 	query.values = make([]string, 0)
-	query.conditions = make([]Condition, 0)
+	query.conditions = make([]condition, 0)
 
 	selectCond := false
 	fromCond := false
@@ -316,8 +316,8 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	return query, nil
 }
 
-func parseWhereClause(whereClause string) ([]Condition, error) {
-	var conditions []Condition
+func parseWhereClause(whereClause string) ([]condition, error) {
+	var conditions []condition
 	andParts := strings.Split(whereClause, "AND")
 	for _, part := range andParts {
 		part = strings.TrimSpace(part)
@@ -334,7 +334,7 @@ func parseWhereClause(whereClause string) ([]Condition, error) {
 	return conditions, nil
 }
 
-func parseSingleCondition(condStr string) (Condition, error) {
+func parseSingleCondition(condStr string) (condition, error) {
 	if likeIdx := strings.Index(strings.ToUpper(condStr), "LIKE "); likeIdx >= 0 {
 		column := strings.TrimSpace(condStr[:likeIdx])
 		value := strings.TrimSpace(condStr[likeIdx+5:])
@@ -343,7 +343,7 @@ func parseSingleCondition(condStr string) (Condition, error) {
 			value = strings.Trim(value, "'\"")
 		}
 
-		return Condition{
+		return condition{
 			Column:   column,
 			Operator: "LIKE",
 			Value:    value,
@@ -361,7 +361,7 @@ func parseSingleCondition(condStr string) (Condition, error) {
 				value = strings.Trim(value, "'\"")
 			}
 
-			return Condition{
+			return condition{
 				Column:   column,
 				Operator: op,
 				Value:    value,
@@ -369,5 +369,5 @@ func parseSingleCondition(condStr string) (Condition, error) {
 		}
 	}
 
-	return Condition{}, errors.New(invalidSQLSyntax)
+	return condition{}, errors.New(invalidSQLSyntax)
 }
