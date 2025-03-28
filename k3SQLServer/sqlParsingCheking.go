@@ -23,6 +23,8 @@ func checkQuery(queryStr string) bool {
 			return checkInsertQuery(queryStr)
 		case "update":
 			return checkUpdateQuery(queryStr)
+		case "delete":
+			return checkDeleteQuery(queryStr)
 		case "alter":
 			return checkAlterQuery(queryStr)
 		case "explain":
@@ -57,6 +59,11 @@ func checkInsertQuery(query string) bool {
 func checkUpdateQuery(query string) bool {
 	updateRegex := regexp.MustCompile(`(?is)^\s*UPDATE\s+(?:\w+\s+(?:AS\s+)?\w+\s*,\s*)*\w+\s+(?:AS\s+)?\w*\s+SET\s+\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+)(?:\s*,\s*\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+))*\s+(?:WHERE\s+.+?)?\s*;?\s*$`)
 	return updateRegex.MatchString(query)
+}
+
+func checkDeleteQuery(query string) bool {
+	deleteRegex := regexp.MustCompile(`(?is)^\s*DELETE\s+FROM\s+\w+(?:\s+WHERE\s+[^;]+)?\s*;?\s*$`)
+	return deleteRegex.MatchString(query)
 }
 
 func checkAlterQuery(query string) bool {
@@ -305,6 +312,53 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 			}
 		}
 	}
+	if len(whereParts) > 0 {
+		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
+		if err != nil {
+			return nil, err
+		}
+		query.conditions = conditions
+	}
+
+	return query, nil
+}
+
+func parseDeleteQuery(queryStr, db string) (*k3DeleteQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(k3DeleteQuery)
+	query.conditions = make([]condition, 0)
+
+	fromFlag := false
+	whereFlag := false
+	var whereParts []string
+
+	for _, part := range parts {
+		part = strings.TrimSuffix(part, ",")
+		upperPart := strings.ToUpper(part)
+
+		switch upperPart {
+		case "DELETE":
+			continue
+		case "FROM":
+			fromFlag = true
+			whereFlag = false
+		case "WHERE":
+			whereFlag = true
+			fromFlag = false
+		default:
+			if fromFlag {
+				table, ok := k3Tables[db+"."+part]
+				if !ok {
+					return nil, errors.New(tableNotExists)
+				}
+				query.table = table
+				fromFlag = false
+			} else if whereFlag {
+				whereParts = append(whereParts, part)
+			}
+		}
+	}
+
 	if len(whereParts) > 0 {
 		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
 		if err != nil {

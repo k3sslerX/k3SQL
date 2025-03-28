@@ -61,6 +61,15 @@ func querySQL(queryString string, dbSlice ...string) (string, error) {
 			}
 		}
 		return "error", err
+	case "delete":
+		query, err := parseDeleteQuery(queryString, db)
+		if err == nil {
+			count, err := deleteTable(query)
+			if err == nil {
+				return fmt.Sprintf("%d rows deleted", count), nil
+			}
+		}
+		return "error", err
 	default:
 		return "error", errors.New(invalidSQLSyntax)
 	}
