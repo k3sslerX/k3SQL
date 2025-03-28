@@ -37,6 +37,32 @@ func selectTable(query *k3SelectQuery) ([]map[string]string, error) {
 	return nil, errors.New(databaseNotExists)
 }
 
+func updateTable(query *k3UpdateQuery) (int, error) {
+	if databaseExists(query.table.database) {
+		if existsTable(query.table) {
+			if query.table.name == "users" {
+				return 0, errors.New(accessDenied)
+			}
+			return updateTableFile(query)
+		}
+		return 0, errors.New(tableNotExists)
+	}
+	return 0, errors.New(databaseNotExists)
+}
+
+func deleteTable(query *k3DeleteQuery) (int, error) {
+	if databaseExists(query.table.database) {
+		if existsTable(query.table) {
+			if query.table.name == "users" {
+				return 0, errors.New(accessDenied)
+			}
+			return deleteTableFile(query)
+		}
+		return 0, errors.New(tableNotExists)
+	}
+	return 0, errors.New(databaseNotExists)
+}
+
 func dropTable(table *k3Table) error {
 	if databaseExists(table.database) {
 		if existsTable(table) {
