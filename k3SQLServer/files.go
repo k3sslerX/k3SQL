@@ -187,6 +187,72 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 	return results, nil
 }
 
+func updateTableFile(query *k3UpdateQuery) (int, error) {
+	query.table.mu.Lock()
+	defer query.table.mu.Unlock()
+
+	filePath := k3sqlDataPath + query.table.database + "/" + query.table.name + extension
+	tempFilePath := filePath + ".tmp"
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	tempFile, err := os.Create(tempFilePath)
+	if err != nil {
+		return 0, err
+	}
+	defer tempFile.Close()
+
+	scanner := bufio.NewScanner(file)
+	writer := bufio.NewWriter(tempFile)
+
+	if !scanner.Scan() {
+		return 0, scanner.Err()
+	}
+	if _, err := writer.WriteString(scanner.Text() + "\n"); err != nil {
+		return 0, err
+	}
+
+	updatedCount := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		record := parseRecord(line, query.table.fields)
+		if len(query.conditions) == 0 || satisfiesConditions(record, query.conditions) {
+			for col, val := range query.setValues {
+				if _, exists := record[col]; exists {
+					record[col] = val
+				}
+			}
+			updatedCount++
+			var newLine strings.Builder
+			for i, field := range query.table.fields {
+				if i > 0 {
+					newLine.WriteString("|")
+				}
+				newLine.WriteString(record[field])
+			}
+			line = newLine.String()
+		}
+		if _, err := writer.WriteString(line + "\n"); err != nil {
+			return updatedCount, err
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return updatedCount, err
+	}
+	if err := writer.Flush(); err != nil {
+		return updatedCount, err
+	}
+	if err := os.Rename(tempFilePath, filePath); err != nil {
+		return updatedCount, err
+	}
+
+	return updatedCount, nil
+}
+
 func deleteTableFile(query *k3DeleteQuery) (int, error) {
 	query.table.mu.Lock()
 	defer query.table.mu.Unlock()

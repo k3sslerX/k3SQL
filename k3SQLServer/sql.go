@@ -52,6 +52,15 @@ func querySQL(queryString string, dbSlice ...string) (string, error) {
 			}
 		}
 		return "error", err
+	case "update":
+		query, err := parseUpdateQuery(queryString, db)
+		if err == nil {
+			count, err := updateTable(query)
+			if err == nil {
+				return fmt.Sprintf("%d rows updated", count), nil
+			}
+		}
+		return "error", err
 	case "drop":
 		table, err := parseDropQuery(queryString, db)
 		if err == nil {

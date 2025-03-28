@@ -45,6 +45,12 @@ type k3DeleteQuery struct {
 	conditions []condition
 }
 
+type k3UpdateQuery struct {
+	table      *k3Table
+	setValues  map[string]string
+	conditions []condition
+}
+
 type condition struct {
 	Column   string
 	Operator string
