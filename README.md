@@ -12,7 +12,7 @@ TODO:
 | insert query          | ✅      |
 | drop query            | ✅      |
 | select query          | ✅      |
-| conditional select    | ❌      |
+| conditional select    | ✅      |
 | alter query           | ❌      |
 | tables constraints    | ❌      |
 | user table creating   | ✅      |

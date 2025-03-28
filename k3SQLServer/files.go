@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -144,70 +145,118 @@ func insertTableFile(query *k3InsertQuery) error {
 	return err
 }
 
+func dropTableFile(table *k3Table) error {
+	return os.Remove(k3sqlDataPath + table.database + "/" + table.name + extension)
+}
+
 func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 	query.table.mu.RLock()
 	defer query.table.mu.RUnlock()
 	fileRead, err := os.Open(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
+	if err != nil {
+		return nil, err
+	}
 	defer fileRead.Close()
-	if err == nil {
-		scanner := bufio.NewScanner(fileRead)
-		scanner.Scan()
-		//dataStr := scanner.Text()
-		//parts := strings.Split(dataStr, "|")
-		//tableTypes := make(map[string]int, len(parts))
-		tableFields := query.table.fields
-		//for _, part := range parts {
-		//	tableType, err := strconv.Atoi(string(part[0]))
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	tableTypes[part[2:]] = tableType
-		//	tableFields = append(tableFields, part[2:])
-		//}
-		values := query.values
-		if len(values) > 0 {
-			if values[0] == "*" && len(values) == 1 {
-				values = values[1:]
-				for _, k := range tableFields {
-					values = append(values, k)
-				}
-			} else if values[0] == "*" {
-				return nil, errors.New(invalidSQLSyntax)
-			} else {
-				for _, value := range values {
-					flag := false
-					for _, k := range tableFields {
-						if value == k {
-							flag = true
-							break
-						}
+	scanner := bufio.NewScanner(fileRead)
+	scanner.Scan()
+	var results []map[string]string
+	for scanner.Scan() {
+		line := scanner.Text()
+		record := parseRecord(line, query.table.fields)
+
+		if satisfiesConditions(record, query.conditions) {
+			filteredRecord := make(map[string]string)
+			for _, field := range query.values {
+				if field == "*" {
+					for k, v := range record {
+						filteredRecord[k] = v
 					}
-					if flag == false {
-						return nil, errors.New(fmt.Sprintf("invalid column: %s", value))
+					break
+				} else {
+					if val, ok := record[field]; ok {
+						filteredRecord[field] = val
+					} else {
+						return nil, fmt.Errorf("field %s not found", field)
 					}
 				}
 			}
-			lines := make([]map[string]string, 0)
-			for scanner.Scan() {
-				lineParts := strings.Split(scanner.Text(), "|")
-				tmpMap := make(map[string]string, len(lineParts))
-				valuesCnt := 0
-				for i := 0; i < len(lineParts) && valuesCnt < len(values); i++ {
-					if tableFields[i] == values[valuesCnt] {
-						tmpMap[tableFields[i]] = lineParts[i]
-						valuesCnt++
-					}
-				}
-				lines = append(lines, tmpMap)
-			}
-			return lines, nil
-		} else {
-			return nil, errors.New(invalidSQLSyntax)
+			results = append(results, filteredRecord)
 		}
 	}
-	return nil, err
+
+	return results, nil
 }
 
-func dropTableFile(table *k3Table) error {
-	return os.Remove(k3sqlDataPath + table.database + "/" + table.name + extension)
+func parseRecord(line string, fields []string) map[string]string {
+	values := strings.Split(line, "|")
+	record := make(map[string]string)
+	for i, field := range fields {
+		if i < len(values) {
+			record[field] = values[i]
+		}
+	}
+	return record
+}
+
+func satisfiesConditions(record map[string]string, conditions []Condition) bool {
+	for _, cond := range conditions {
+		recordValue, ok := record[cond.Column]
+		if !ok {
+			return false
+		}
+
+		switch cond.Operator {
+		case "LIKE":
+			likePattern := strings.ReplaceAll(cond.Value, "%", ".*")
+			likePattern = strings.ReplaceAll(likePattern, "_", ".")
+			likePattern = "^" + likePattern + "$"
+
+			matched, err := regexp.MatchString(likePattern, recordValue)
+			if err != nil || !matched {
+				return false
+			}
+		case "=":
+			if recordValue != cond.Value {
+				return false
+			}
+		case "!=":
+			if recordValue == cond.Value {
+				return false
+			}
+		case ">":
+			if !compareValues(recordValue, cond.Value, false) {
+				return false
+			}
+		case "<":
+			if !compareValues(cond.Value, recordValue, false) {
+				return false
+			}
+		case ">=":
+			if !compareValues(recordValue, cond.Value, true) {
+				return false
+			}
+		case "<=":
+			if !compareValues(cond.Value, recordValue, true) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func compareValues(a, b string, allowEqual bool) bool {
+	numA, errA := strconv.ParseFloat(a, 64)
+	numB, errB := strconv.ParseFloat(b, 64)
+
+	if errA == nil && errB == nil {
+		if allowEqual && numA == numB {
+			return true
+		}
+		return numA > numB
+	}
+
+	if allowEqual && a == b {
+		return true
+	}
+	return a > b
 }
