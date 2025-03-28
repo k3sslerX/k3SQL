@@ -13,6 +13,10 @@ TODO:
 | drop query            | ✅      |
 | select query          | ✅      |
 | conditional select    | ✅      |
+| update query          | ✅      |
+| conditional update    | ✅      |
+| delete query          | ✅      |
+| conditional delete    | ✅      |
 | alter query           | ❌      |
 | tables constraints    | ❌      |
 | user table creating   | ✅      |
