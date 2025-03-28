@@ -62,7 +62,7 @@ func Connect(host, port string) {
 				break
 			}
 		}
-		fmt.Println("Ответ сервера:", string(response))
+		fmt.Printf("Ответ сервера:\n" + string(response))
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Ошибка ввода:", err)

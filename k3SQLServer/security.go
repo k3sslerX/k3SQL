@@ -55,7 +55,7 @@ func readAllFiles(rootDir string, callback func(path string, isDir bool) error) 
 	})
 }
 
-func StartService() error {
+func startService() error {
 	k3Tables = make(map[string]*k3Table, 1)
 	err := readAllFiles(k3FilesPath, func(path string, isDir bool) error {
 		if !isDir {

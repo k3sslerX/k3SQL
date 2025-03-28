@@ -11,7 +11,6 @@ func handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
 		queryStr, err := reader.ReadString('\n')
-		fmt.Println("Accepted:", queryStr)
 		if err != nil {
 			if err.Error() != "EOF" {
 				fmt.Println("Reading error:", err)
@@ -32,6 +31,11 @@ func handleConnection(conn net.Conn) {
 }
 
 func ConnectServer(host, port string) {
+	err := startService()
+	if err != nil {
+		fmt.Println("Can't start K3SQLServer service")
+		return
+	}
 	serverAddr := host + ":" + port
 	listener, err := net.Listen("tcp", serverAddr)
 	if err != nil {
