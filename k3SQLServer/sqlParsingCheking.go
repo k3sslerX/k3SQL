@@ -438,7 +438,7 @@ func parseDeleteQuery(queryStr, db string) (*k3DeleteQuery, error) {
 
 func parseWhereClause(whereClause string) ([]condition, error) {
 	var conditions []condition
-	andParts := strings.Split(whereClause, "AND")
+	andParts := strings.Split(whereClause, "and")
 	for _, part := range andParts {
 		part = strings.TrimSpace(part)
 		if part == "" {
