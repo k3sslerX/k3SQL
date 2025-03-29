@@ -2,9 +2,12 @@ package k3SQLClient
 
 import "net"
 
-const ConnectionError = "connection error"
-const SendingFail = "sending failure"
-const ReadingFail = "reading failure"
+const (
+	ConnectionError    = "connection error"
+	SendingFail        = "sending failure"
+	ReadingFail        = "reading failure"
+	ConnectionIsNotSet = "connection is not set"
+)
 
 type K3Server struct {
 	Host     string
