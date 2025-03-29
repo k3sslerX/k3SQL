@@ -2,6 +2,7 @@ package k3SQLServer
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 )
@@ -9,6 +10,25 @@ import (
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
+
+	authLine, err := reader.ReadString('\n')
+	if err != nil {
+		return
+	}
+
+	var authReq AuthRequest
+	if err := json.Unmarshal([]byte(authLine), &authReq); err != nil {
+		conn.Write([]byte(invalidAuthFormat + "\n"))
+		return
+	}
+
+	resp, err := checkCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
+	if !resp {
+		conn.Write([]byte(err.Error() + "\n"))
+		return
+	}
+
+	conn.Write([]byte("OK\n"))
 	for {
 		queryStr, err := reader.ReadString('\n')
 		if err != nil {

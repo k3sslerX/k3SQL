@@ -22,6 +22,51 @@ func databaseExists(name string) bool {
 	return false
 }
 
+func checkCredentialsFiles(dbName, user, password string) (bool, error) {
+	if !databaseExists(dbName) {
+		return false, errors.New(databaseNotExists)
+	}
+
+	tableKey := dbName + ".users"
+	usersTable, ok := k3Tables[tableKey]
+	if !ok {
+		return false, errors.New(tableNotExists)
+	}
+
+	usersTable.mu.RLock()
+	defer usersTable.mu.RUnlock()
+
+	filePath := k3sqlDataPath + dbName + "/users" + extension
+	file, err := os.Open(filePath)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	if !scanner.Scan() {
+		return false, errors.New(fileFormatError)
+	}
+
+	for scanner.Scan() {
+		record := parseUserRecord(scanner.Text())
+		if record["name"] == user && record["password"] == password {
+			return true, nil
+		}
+	}
+
+	return false, errors.New(userNotFound)
+}
+
+func parseUserRecord(line string) map[string]string {
+	parts := strings.Split(line, "|")
+	return map[string]string{
+		"name":     parts[0],
+		"password": parts[1],
+	}
+}
+
 func existsTable(table *k3Table) bool {
 	file, err := os.Open(k3sqlDataPath + table.database + "/" + table.name + extension)
 	defer file.Close()

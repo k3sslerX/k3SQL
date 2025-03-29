@@ -21,11 +21,21 @@ const databaseAlreadyExists = "database already exists"
 const invalidSQLSyntax = "SQL syntax error"
 const invalidSQLLogic = "SQL logic error"
 const accessDenied = "access denied"
+const fileFormatError = "file format error"
+const userNotFound = "user not found"
+const invalidAuthFormat = "invalid auth format"
 
 // DEFAULT DATABASE NAME
 const databaseDefaultName = "k3db"
 
 // META DATA
+type AuthRequest struct {
+	Action   string `json:"action"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+}
+
 type k3Table struct {
 	database string
 	name     string
