@@ -10,6 +10,9 @@ import (
 )
 
 func (conn K3Connection) Query(query string) (string, error) {
+	if conn.Conn == nil {
+		return "", errors.New(ConnectionIsNotSet)
+	}
 	reader := bufio.NewReader(conn.Conn)
 	err := conn.Conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
 	if err != nil {
