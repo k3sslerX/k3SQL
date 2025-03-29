@@ -28,6 +28,8 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
+	db := authReq.Database
+
 	conn.Write([]byte("OK\n"))
 	for {
 		queryStr, err := reader.ReadString('\n')
@@ -37,7 +39,7 @@ func handleConnection(conn net.Conn) {
 			}
 			return
 		}
-		result, err := querySQL(queryStr)
+		result, err := querySQL(queryStr, db)
 		if err == nil {
 			_, err = fmt.Fprintln(conn, result)
 		} else {
