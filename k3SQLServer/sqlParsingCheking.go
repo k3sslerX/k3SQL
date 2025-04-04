@@ -29,6 +29,8 @@ func checkQuery(queryStr string) bool {
 			return checkAlterQuery(queryStr)
 		case "explain":
 			return checkQuery(queryStr[len(part):])
+		case "user":
+			return checkUserQuery(queryStr)
 		default:
 			return false
 		}
@@ -68,6 +70,49 @@ func checkDeleteQuery(query string) bool {
 
 func checkAlterQuery(query string) bool {
 	return true
+}
+
+func checkUserQuery(query string) bool {
+	return true
+}
+
+func parseUserQuery(queryStr, db string) (*k3UserQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(k3UserQuery)
+	query.database = db
+	newFlag := false
+	delFlag := false
+	pwdFlag := false
+	for _, part := range parts {
+		if strings.EqualFold(part, "new") {
+			newFlag = true
+			continue
+		}
+		if strings.EqualFold(part, "delete") {
+			delFlag = true
+			continue
+		}
+		if newFlag {
+			query.username = part
+			query.action = k3CREATE
+			newFlag = false
+			pwdFlag = true
+			continue
+		}
+		if delFlag {
+			query.username = part
+			query.action = k3DELETE
+			delFlag = false
+			pwdFlag = true
+			continue
+		}
+		if pwdFlag {
+			query.password = part
+			pwdFlag = false
+			continue
+		}
+	}
+	return query, nil
 }
 
 func parseCreateQuery(queryStr, db string) (*k3CreateQuery, error) {
@@ -232,7 +277,7 @@ func parseUpdateQuery(queryStr, db string) (*k3UpdateQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := &k3UpdateQuery{
 		setValues:  make(map[string]string),
-		conditions: make([]condition, 0),
+		conditions: make([]k3Condition, 0),
 	}
 
 	updateFlag := true
@@ -340,7 +385,7 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3SelectQuery)
 	query.values = make([]string, 0)
-	query.conditions = make([]condition, 0)
+	query.conditions = make([]k3Condition, 0)
 
 	selectCond := false
 	fromCond := false
@@ -392,7 +437,7 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 func parseDeleteQuery(queryStr, db string) (*k3DeleteQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3DeleteQuery)
-	query.conditions = make([]condition, 0)
+	query.conditions = make([]k3Condition, 0)
 
 	fromFlag := false
 	whereFlag := false
@@ -436,8 +481,8 @@ func parseDeleteQuery(queryStr, db string) (*k3DeleteQuery, error) {
 	return query, nil
 }
 
-func parseWhereClause(whereClause string) ([]condition, error) {
-	var conditions []condition
+func parseWhereClause(whereClause string) ([]k3Condition, error) {
+	var conditions []k3Condition
 	andParts := strings.Split(whereClause, "and")
 	for _, part := range andParts {
 		part = strings.TrimSpace(part)
@@ -454,7 +499,7 @@ func parseWhereClause(whereClause string) ([]condition, error) {
 	return conditions, nil
 }
 
-func parseSingleCondition(condStr string) (condition, error) {
+func parseSingleCondition(condStr string) (k3Condition, error) {
 	if likeIdx := strings.Index(strings.ToUpper(condStr), "LIKE "); likeIdx >= 0 {
 		column := strings.TrimSpace(condStr[:likeIdx])
 		value := strings.TrimSpace(condStr[likeIdx+5:])
@@ -463,10 +508,10 @@ func parseSingleCondition(condStr string) (condition, error) {
 			value = strings.Trim(value, "'\"")
 		}
 
-		return condition{
-			Column:   column,
-			Operator: "LIKE",
-			Value:    value,
+		return k3Condition{
+			column:   column,
+			operator: "LIKE",
+			value:    value,
 		}, nil
 	}
 
@@ -481,13 +526,13 @@ func parseSingleCondition(condStr string) (condition, error) {
 				value = strings.Trim(value, "'\"")
 			}
 
-			return condition{
-				Column:   column,
-				Operator: op,
-				Value:    value,
+			return k3Condition{
+				column:   column,
+				operator: op,
+				value:    value,
 			}, nil
 		}
 	}
 
-	return condition{}, errors.New(invalidSQLSyntax)
+	return k3Condition{}, errors.New(invalidSQLSyntax)
 }
