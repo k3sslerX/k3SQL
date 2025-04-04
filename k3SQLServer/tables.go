@@ -79,3 +79,40 @@ func dropTable(table *k3Table) error {
 	}
 	return errors.New(databaseNotExists)
 }
+
+func processUser(userQuery *k3UserQuery) error {
+	if databaseExists(userQuery.database) {
+		if userQuery.username == "k3user" {
+			return errors.New(accessDenied)
+		}
+		values := make([]map[string]string, 1)
+		values[0] = map[string]string{
+			"name":     userQuery.username,
+			"password": userQuery.password,
+		}
+		if userQuery.action == k3CREATE {
+			insertQuery := &k3InsertQuery{
+				table:  k3Tables[userQuery.database+".users"],
+				values: values,
+			}
+			return insertTableFile(insertQuery)
+		} else if userQuery.action == k3DELETE {
+			cond := make([]k3Condition, 1)
+			cond[0] = k3Condition{
+				column:   "name",
+				operator: "=",
+				value:    userQuery.username,
+			}
+			deleteQuery := &k3DeleteQuery{
+				table:      k3Tables[userQuery.database+".users"],
+				conditions: cond,
+			}
+			n, err := deleteTableFile(deleteQuery)
+			if n == 0 {
+				return errors.New(userNotFound)
+			}
+			return err
+		}
+	}
+	return errors.New(databaseNotExists)
+}
