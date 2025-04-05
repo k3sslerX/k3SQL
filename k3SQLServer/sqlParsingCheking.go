@@ -23,10 +23,14 @@ func checkQuery(queryStr string) bool {
 			return checkInsertQuery(queryStr)
 		case "update":
 			return checkUpdateQuery(queryStr)
+		case "delete":
+			return checkDeleteQuery(queryStr)
 		case "alter":
 			return checkAlterQuery(queryStr)
 		case "explain":
 			return checkQuery(queryStr[len(part):])
+		case "user":
+			return checkUserQuery(queryStr)
 		default:
 			return false
 		}
@@ -55,12 +59,60 @@ func checkInsertQuery(query string) bool {
 }
 
 func checkUpdateQuery(query string) bool {
-	updateRegex := regexp.MustCompile(`(?is)^\s*UPDATE\s+(?:\w+\s+(?:AS\s+)?\w+\s*,\s*)*\w+\s+(?:AS\s+)?\w*\s+SET\s+\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+)(?:\s*,\s*\w+\s*=\s*(?:'[^']*'|"[^"]*"|\d+\.?\d*|\w+))*\s+(?:WHERE\s+.+?)?\s*;?\s*$`)
+	updateRegex := regexp.MustCompile(`(?is)^\s*UPDATE\s+\w+\s+SET\s+[^;]+(?:\s+WHERE\s+[^;]+)?\s*;?\s*$`)
 	return updateRegex.MatchString(query)
+}
+
+func checkDeleteQuery(query string) bool {
+	deleteRegex := regexp.MustCompile(`(?is)^\s*DELETE\s+FROM\s+\w+(?:\s+WHERE\s+[^;]+)?\s*;?\s*$`)
+	return deleteRegex.MatchString(query)
 }
 
 func checkAlterQuery(query string) bool {
 	return true
+}
+
+func checkUserQuery(query string) bool {
+	return true
+}
+
+func parseUserQuery(queryStr, db string) (*k3UserQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(k3UserQuery)
+	query.database = db
+	newFlag := false
+	delFlag := false
+	pwdFlag := false
+	for _, part := range parts {
+		if strings.EqualFold(part, "new") {
+			newFlag = true
+			continue
+		}
+		if strings.EqualFold(part, "delete") {
+			delFlag = true
+			continue
+		}
+		if newFlag {
+			query.username = part
+			query.action = k3CREATE
+			newFlag = false
+			pwdFlag = true
+			continue
+		}
+		if delFlag {
+			query.username = part
+			query.action = k3DELETE
+			delFlag = false
+			pwdFlag = true
+			continue
+		}
+		if pwdFlag {
+			query.password = part
+			pwdFlag = false
+			continue
+		}
+	}
+	return query, nil
 }
 
 func parseCreateQuery(queryStr, db string) (*k3CreateQuery, error) {
@@ -221,6 +273,72 @@ func parseInsertQuery(queryStr, db string) (*k3InsertQuery, error) {
 	return query, nil
 }
 
+func parseUpdateQuery(queryStr, db string) (*k3UpdateQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := &k3UpdateQuery{
+		setValues:  make(map[string]string),
+		conditions: make([]k3Condition, 0),
+	}
+
+	updateFlag := true
+	setFlag := false
+	whereFlag := false
+	var whereParts []string
+	var setParts []string
+
+	for i := 0; i < len(parts); i++ {
+		part := strings.TrimSuffix(parts[i], ",")
+		upperPart := strings.ToUpper(part)
+
+		switch upperPart {
+		case "UPDATE":
+			continue
+		case "SET":
+			updateFlag = false
+			setFlag = true
+			whereFlag = false
+		case "WHERE":
+			setFlag = false
+			whereFlag = true
+			updateFlag = false
+		default:
+			if updateFlag {
+				table, ok := k3Tables[db+"."+part]
+				if !ok {
+					return nil, errors.New(tableNotExists)
+				}
+				query.table = table
+			} else if setFlag {
+				setParts = append(setParts, part)
+			} else if whereFlag {
+				whereParts = append(whereParts, part)
+			}
+		}
+	}
+	setClause := strings.Join(setParts, " ")
+	setPairs := strings.Split(setClause, ",")
+	for _, pair := range setPairs {
+		pair = strings.TrimSpace(pair)
+		if eqIdx := strings.Index(pair, "="); eqIdx > 0 {
+			column := strings.TrimSpace(pair[:eqIdx])
+			value := strings.TrimSpace(pair[eqIdx+1:])
+			if len(value) > 0 && (value[0] == '\'' || value[0] == '"') {
+				value = strings.Trim(value, "'\"")
+			}
+			query.setValues[column] = value
+		}
+	}
+	if len(whereParts) > 0 {
+		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
+		if err != nil {
+			return nil, err
+		}
+		query.conditions = conditions
+	}
+
+	return query, nil
+}
+
 func parseDropQuery(queryStr, db string) (*k3Table, error) {
 	parts := strings.Fields(queryStr)
 	tableFlag := false
@@ -267,7 +385,7 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
 	query := new(k3SelectQuery)
 	query.values = make([]string, 0)
-	query.conditions = make([]condition, 0)
+	query.conditions = make([]k3Condition, 0)
 
 	selectCond := false
 	fromCond := false
@@ -316,9 +434,56 @@ func parseSelectQuery(queryStr, db string) (*k3SelectQuery, error) {
 	return query, nil
 }
 
-func parseWhereClause(whereClause string) ([]condition, error) {
-	var conditions []condition
-	andParts := strings.Split(whereClause, "AND")
+func parseDeleteQuery(queryStr, db string) (*k3DeleteQuery, error) {
+	parts := strings.Fields(queryStr)
+	query := new(k3DeleteQuery)
+	query.conditions = make([]k3Condition, 0)
+
+	fromFlag := false
+	whereFlag := false
+	var whereParts []string
+
+	for _, part := range parts {
+		part = strings.TrimSuffix(part, ",")
+		upperPart := strings.ToUpper(part)
+
+		switch upperPart {
+		case "DELETE":
+			continue
+		case "FROM":
+			fromFlag = true
+			whereFlag = false
+		case "WHERE":
+			whereFlag = true
+			fromFlag = false
+		default:
+			if fromFlag {
+				table, ok := k3Tables[db+"."+part]
+				if !ok {
+					return nil, errors.New(tableNotExists)
+				}
+				query.table = table
+				fromFlag = false
+			} else if whereFlag {
+				whereParts = append(whereParts, part)
+			}
+		}
+	}
+
+	if len(whereParts) > 0 {
+		conditions, err := parseWhereClause(strings.Join(whereParts, " "))
+		if err != nil {
+			return nil, err
+		}
+		query.conditions = conditions
+	}
+
+	return query, nil
+}
+
+func parseWhereClause(whereClause string) ([]k3Condition, error) {
+	var conditions []k3Condition
+	andParts := strings.Split(whereClause, "and")
 	for _, part := range andParts {
 		part = strings.TrimSpace(part)
 		if part == "" {
@@ -334,7 +499,7 @@ func parseWhereClause(whereClause string) ([]condition, error) {
 	return conditions, nil
 }
 
-func parseSingleCondition(condStr string) (condition, error) {
+func parseSingleCondition(condStr string) (k3Condition, error) {
 	if likeIdx := strings.Index(strings.ToUpper(condStr), "LIKE "); likeIdx >= 0 {
 		column := strings.TrimSpace(condStr[:likeIdx])
 		value := strings.TrimSpace(condStr[likeIdx+5:])
@@ -343,10 +508,10 @@ func parseSingleCondition(condStr string) (condition, error) {
 			value = strings.Trim(value, "'\"")
 		}
 
-		return condition{
-			Column:   column,
-			Operator: "LIKE",
-			Value:    value,
+		return k3Condition{
+			column:   column,
+			operator: "LIKE",
+			value:    value,
 		}, nil
 	}
 
@@ -361,13 +526,13 @@ func parseSingleCondition(condStr string) (condition, error) {
 				value = strings.Trim(value, "'\"")
 			}
 
-			return condition{
-				Column:   column,
-				Operator: op,
-				Value:    value,
+			return k3Condition{
+				column:   column,
+				operator: op,
+				value:    value,
 			}, nil
 		}
 	}
 
-	return condition{}, errors.New(invalidSQLSyntax)
+	return k3Condition{}, errors.New(invalidSQLSyntax)
 }
