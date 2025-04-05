@@ -34,6 +34,6 @@ TODO:
 | task                      | status |
 |---------------------------|--------|
 | connect to server         | ✅      |
-| manipulate db from client | ❌      |
+| manipulate db from client | ✅      |
 | user support              | ❌      |
 | user authentication       | ✅      |
