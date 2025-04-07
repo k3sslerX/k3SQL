@@ -1,6 +1,8 @@
 package k3SQLServer
 
-import "errors"
+import (
+	"errors"
+)
 
 func createTable(query *k3CreateQuery) error {
 	if databaseExists(query.table.database) {
