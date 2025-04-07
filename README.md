@@ -2,9 +2,7 @@
 
 k3SQL is a DBMS based on client-server architecture, using the method of concurency queries (as opposed to parallel ones, as in Postgres), which allows not to limit the number of simultaneous queries by the number of processor threads.
 
-## Server
-
-TODO:
+## TODO
 
 | task                  | status |
 |-----------------------|--------|
@@ -28,12 +26,3 @@ TODO:
 | reliability           | ❌      |
 | transactions          | ❌      |
 | user authentication   | ✅      |
-
-## Client
-
-| task                      | status |
-|---------------------------|--------|
-| connect to server         | ✅      |
-| manipulate db from client | ✅      |
-| user support              | ❌      |
-| user authentication       | ✅      |
