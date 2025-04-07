@@ -1,5 +1,2 @@
 .DS_Store
 .idea*
-k3SQL/*
-clientExec.go
-serverExec.go
