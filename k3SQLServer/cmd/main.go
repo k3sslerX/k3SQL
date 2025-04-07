@@ -1,7 +1,7 @@
 package main
 
 import (
-	"k3SQLServer/k3SQLServer"
+	"k3SQLServer"
 	"os"
 )
 
