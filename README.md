@@ -1,6 +1,6 @@
 # k3SQL
 
-**k3SQL** - СУБД, основанная на клиент-серверной архитектуре, использующая метод конкурентных запросов (в отличии от параллельных, как в Postgres), что позволяет не ограничивать количество одновременных запросов количеством потоков процессора.
+k3SQL is a DBMS based on client-server architecture, using the method of concurency queries (as opposed to parallel ones, as in Postgres), which allows not to limit the number of simultaneous queries by the number of processor threads.
 
 ## Server
 
