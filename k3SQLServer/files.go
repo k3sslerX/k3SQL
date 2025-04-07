@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"os"
 	"regexp"
 	"strconv"
@@ -53,8 +54,13 @@ func checkCredentialsFiles(dbName, user, password string) (bool, error) {
 
 	for scanner.Scan() {
 		record := parseUserRecord(scanner.Text())
-		if record["name"] == user && record["password"] == password {
-			return true, nil
+		if record["name"] == user {
+			err = bcrypt.CompareHashAndPassword([]byte(password), []byte(record["password"]))
+			if err == nil {
+				return true, nil
+			} else {
+				return false, errors.New(wrongPassword)
+			}
 		}
 	}
 
