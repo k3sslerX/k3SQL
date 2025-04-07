@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"os"
 	"regexp"
 	"strconv"
@@ -15,9 +16,11 @@ func createDatabaseFile(name string) error {
 }
 
 func databaseExists(name string) bool {
-	_, err := os.Stat(k3sqlDataPath + name)
-	if err == nil {
-		return true
+	if len(name) > 0 {
+		_, err := os.Stat(k3sqlDataPath + name)
+		if err == nil {
+			return true
+		}
 	}
 	return false
 }
@@ -51,8 +54,13 @@ func checkCredentialsFiles(dbName, user, password string) (bool, error) {
 
 	for scanner.Scan() {
 		record := parseUserRecord(scanner.Text())
-		if record["name"] == user && record["password"] == password {
-			return true, nil
+		if record["name"] == user {
+			err = bcrypt.CompareHashAndPassword([]byte(password), []byte(record["password"]))
+			if err == nil {
+				return true, nil
+			} else {
+				return false, errors.New(wrongPassword)
+			}
 		}
 	}
 
@@ -361,16 +369,16 @@ func parseRecord(line string, fields []string) map[string]string {
 	return record
 }
 
-func satisfiesConditions(record map[string]string, conditions []condition) bool {
+func satisfiesConditions(record map[string]string, conditions []k3Condition) bool {
 	for _, cond := range conditions {
-		recordValue, ok := record[cond.Column]
+		recordValue, ok := record[cond.column]
 		if !ok {
 			return false
 		}
 
-		switch cond.Operator {
+		switch cond.operator {
 		case "LIKE":
-			likePattern := strings.ReplaceAll(cond.Value, "%", ".*")
+			likePattern := strings.ReplaceAll(cond.value, "%", ".*")
 			likePattern = strings.ReplaceAll(likePattern, "_", ".")
 			likePattern = "^" + likePattern + "$"
 
@@ -379,27 +387,27 @@ func satisfiesConditions(record map[string]string, conditions []condition) bool 
 				return false
 			}
 		case "=":
-			if recordValue != cond.Value {
+			if recordValue != cond.value {
 				return false
 			}
 		case "!=":
-			if recordValue == cond.Value {
+			if recordValue == cond.value {
 				return false
 			}
 		case ">":
-			if !compareValues(recordValue, cond.Value, false) {
+			if !compareValues(recordValue, cond.value, false) {
 				return false
 			}
 		case "<":
-			if !compareValues(cond.Value, recordValue, false) {
+			if !compareValues(cond.value, recordValue, false) {
 				return false
 			}
 		case ">=":
-			if !compareValues(recordValue, cond.Value, true) {
+			if !compareValues(recordValue, cond.value, true) {
 				return false
 			}
 		case "<=":
-			if !compareValues(cond.Value, recordValue, true) {
+			if !compareValues(cond.value, recordValue, true) {
 				return false
 			}
 		}

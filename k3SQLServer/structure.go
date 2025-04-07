@@ -13,6 +13,10 @@ const k3INT = 1
 const k3FLOAT = 2
 const k3TEXT = 3
 
+// VALUES ACTION
+const k3DELETE = 1
+const k3CREATE = 0
+
 // ERROR MESSAGES
 const tableNotExists = "table does not exists"
 const tableAlreadyExists = "table already exists"
@@ -24,12 +28,13 @@ const accessDenied = "access denied"
 const fileFormatError = "file format error"
 const userNotFound = "user not found"
 const invalidAuthFormat = "invalid auth format"
+const wrongPassword = "wrong password"
 
 // DEFAULT DATABASE NAME
 const databaseDefaultName = "k3db"
 
 // META DATA
-type AuthRequest struct {
+type k3AuthRequest struct {
 	Action   string `json:"action"`
 	User     string `json:"user"`
 	Password string `json:"password"`
@@ -46,25 +51,25 @@ type k3Table struct {
 type k3SelectQuery struct {
 	table      *k3Table
 	values     []string
-	conditions []condition
+	conditions []k3Condition
 	//join      *k3join
 }
 
 type k3DeleteQuery struct {
 	table      *k3Table
-	conditions []condition
+	conditions []k3Condition
 }
 
 type k3UpdateQuery struct {
 	table      *k3Table
 	setValues  map[string]string
-	conditions []condition
+	conditions []k3Condition
 }
 
-type condition struct {
-	Column   string
-	Operator string
-	Value    string
+type k3Condition struct {
+	column   string
+	operator string
+	value    string
 }
 
 type k3join struct {
@@ -83,6 +88,13 @@ type k3CreateQuery struct {
 type k3InsertQuery struct {
 	table  *k3Table
 	values []map[string]string
+}
+
+type k3UserQuery struct {
+	database string
+	action   int
+	username string
+	password string
 }
 
 var k3Tables map[string]*k3Table

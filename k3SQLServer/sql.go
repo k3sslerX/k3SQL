@@ -79,6 +79,15 @@ func querySQL(queryString string, dbSlice ...string) (string, error) {
 			}
 		}
 		return "error", err
+	case "user":
+		query, err := parseUserQuery(queryString, db)
+		if err == nil {
+			err = processUser(query)
+			if err == nil {
+				return "done", err
+			}
+		}
+		return "error", err
 	default:
 		return "error", errors.New(invalidSQLSyntax)
 	}

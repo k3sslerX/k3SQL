@@ -10,13 +10,14 @@ import (
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
+	fmt.Printf("incoming connection from %v\n", conn.RemoteAddr())
 
 	authLine, err := reader.ReadString('\n')
 	if err != nil {
 		return
 	}
 
-	var authReq AuthRequest
+	var authReq k3AuthRequest
 	if err := json.Unmarshal([]byte(authLine), &authReq); err != nil {
 		conn.Write([]byte(invalidAuthFormat + "\n"))
 		return
