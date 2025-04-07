@@ -3,11 +3,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/k3sql-server ./k3SQLServer
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o k3sql-server ./k3SQLServer
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/k3sql-server /app/k3sql-server
-RUN chmod +x /app/k3sql-server
+COPY --from=builder /app/k3sql-server .
+RUN chmod +x k3sql-server
 EXPOSE 3003
-CMD ["/app/k3sql-server", "0.0.0.0", "3003"]
+CMD ["./k3sql-server", "0.0.0.0", "3003"]
