@@ -22,4 +22,4 @@ RUN chmod +x k3sql-server && \
     chown -R 1000:1000 /opt/k3SQL
 
 EXPOSE 3003
-CMD ["./k3sql-server"]
+CMD ["./k3sql-server 0.0.0.0 3003"]
