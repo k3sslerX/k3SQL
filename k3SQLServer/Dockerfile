@@ -1,9 +1,10 @@
 FROM golang:1.24-alpine AS builder
 WORKDIR /app
-COPY go.mod go.sum ./
+COPY k3SQLServer/go.mod k3SQLServer/go.sum ./
+COPY k3SQLServer/ ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/main
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/main.go
 
 FROM alpine:latest
 WORKDIR /app
