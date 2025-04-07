@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: k3sql/k3sql-server
+  IMAGE_NAME: ${{ github.repository }}k3sql/k3sql-server
 
 jobs:
   build-and-push:
