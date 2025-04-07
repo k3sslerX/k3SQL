@@ -59,7 +59,7 @@ func startService() error {
 	k3Tables = make(map[string]*k3Table, 1)
 	err := readAllFiles(k3FilesPath, func(path string, isDir bool) error {
 		if !isDir {
-			if strings.HasPrefix(path, k3sqlDataPath) {
+			if strings.HasPrefix(path, k3sqlDataPath) && strings.HasSuffix(path, extension) {
 				path = strings.TrimPrefix(path, k3sqlDataPath)
 				path = strings.TrimSuffix(path, extension)
 				fileParts := strings.Split(path, "/")
