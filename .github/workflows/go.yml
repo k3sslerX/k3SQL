@@ -6,8 +6,8 @@ name: Go
 on:
   push:
     branches: [ "main" ]
-  paths:
-    - k3SQLServer/
+    paths:
+      - k3SQLServer/
 
 jobs:
 
