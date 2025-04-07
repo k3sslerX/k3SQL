@@ -10,10 +10,10 @@ FROM alpine:latest
 
 RUN mkdir -p /opt/k3SQL/data
 RUN mkdir -p /opt/k3SQL/config
-RUN chmod 755 /opt/k3SQL
 
 RUN mkdir -p /opt/k3SQL/data/k3db
-RUN echo "3 user|3 password\nk3user|333" > /opt/k3SQL/data/k3db/users.k3
+RUN echo "3 user|3 password\nk3user|333\n" > /opt/k3SQL/data/k3db/users.k3
+RUN chmod 755 /opt/k3SQL
 
 WORKDIR /app
 COPY --from=builder /app/k3sql-server .
