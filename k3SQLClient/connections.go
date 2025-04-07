@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"net"
 	"strconv"
@@ -11,10 +12,11 @@ import (
 )
 
 func (conn *K3Connection) authenticate(server K3Server) error {
+	password, _ := bcrypt.GenerateFromPassword([]byte(server.Password), bcrypt.DefaultCost)
 	authReq := K3AuthRequest{
 		Action:   "auth",
 		User:     server.User,
-		Password: server.Password,
+		Password: string(password),
 		Database: server.Database,
 	}
 

@@ -28,6 +28,7 @@ const accessDenied = "access denied"
 const fileFormatError = "file format error"
 const userNotFound = "user not found"
 const invalidAuthFormat = "invalid auth format"
+const wrongPassword = "wrong password"
 
 // DEFAULT DATABASE NAME
 const databaseDefaultName = "k3db"
