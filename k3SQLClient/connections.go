@@ -65,13 +65,13 @@ func (conn *K3Connection) Query(query string) (string, error) {
 	}
 	req := k3Request{
 		Action: "query",
-		Query:  query + "\n",
+		Query:  query,
 	}
 	reqJson, err := json.Marshal(req)
 	if err != nil {
 		return "", err
 	}
-	_, err = conn.Conn.Write(reqJson)
+	_, err = conn.Conn.Write(append(reqJson, '\n'))
 	if err != nil {
 		return "", errors.New(SendingFail)
 	}

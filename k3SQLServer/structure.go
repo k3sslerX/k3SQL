@@ -29,17 +29,12 @@ const fileFormatError = "file format error"
 const userNotFound = "user not found"
 const invalidAuthFormat = "invalid auth format"
 const wrongPassword = "wrong password"
+const unknownAction = "unknown action"
 
 // DEFAULT DATABASE NAME
 const databaseDefaultName = "k3db"
 
 // META DATA
-type k3AuthRequest struct {
-	Action   string `json:"action"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-}
 
 type k3Table struct {
 	database string
