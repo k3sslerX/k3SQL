@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"net"
@@ -22,7 +21,6 @@ func (conn *K3Connection) authenticate(server K3Server) error {
 	}
 
 	authData, err := json.Marshal(authReq)
-	fmt.Println(string(authData))
 	if err != nil {
 		return err
 	}
@@ -70,7 +68,6 @@ func (conn *K3Connection) Query(query string) (string, error) {
 		Query:  query + "\n",
 	}
 	reqJson, err := json.Marshal(req)
-	fmt.Println(string(reqJson))
 	if err != nil {
 		return "", err
 	}
