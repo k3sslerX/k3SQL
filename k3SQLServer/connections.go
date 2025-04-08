@@ -7,6 +7,14 @@ import (
 	"net"
 )
 
+type k3QueryRequest struct {
+	Action   string `json:"action"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+	Query    string `json:"query"`
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
@@ -17,7 +25,7 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	var authReq k3AuthRequest
+	var authReq k3QueryRequest
 	if err := json.Unmarshal([]byte(authLine), &authReq); err != nil {
 		conn.Write([]byte(invalidAuthFormat + "\n"))
 		return
@@ -33,22 +41,31 @@ func handleConnection(conn net.Conn) {
 
 	conn.Write([]byte("OK\n"))
 	for {
-		queryStr, err := reader.ReadString('\n')
+		reqStr, err := reader.ReadString('\n')
 		if err != nil {
 			if err.Error() != "EOF" {
-				fmt.Println("Reading error:", err)
+				conn.Write([]byte(err.Error() + "\n"))
 			}
 			return
 		}
-		result, err := querySQL(queryStr, db)
-		if err == nil {
-			_, err = fmt.Fprintln(conn, result)
-		} else {
-			_, err = fmt.Fprintln(conn, err)
-		}
+		var req k3QueryRequest
+		err = json.Unmarshal([]byte(reqStr), &req)
 		if err != nil {
-			fmt.Println("Sending error:", err)
-			return
+			conn.Write([]byte(err.Error() + "\n"))
+		}
+		if req.Action == "query" {
+			result, err := querySQL(req.Query, db)
+			if err == nil {
+				conn.Write([]byte(result))
+			} else {
+				conn.Write([]byte(err.Error() + "\n"))
+			}
+			if err != nil {
+				fmt.Println("Sending error:", err)
+				return
+			}
+		} else {
+			conn.Write([]byte(unknownAction + "\n"))
 		}
 	}
 }
