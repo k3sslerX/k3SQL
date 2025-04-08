@@ -24,9 +24,10 @@ type K3Connection struct {
 	Authenticated bool
 }
 
-type K3AuthRequest struct {
+type k3Request struct {
 	Action   string `json:"action"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Database string `json:"database"`
+	Query    string `json:"query"`
 }
