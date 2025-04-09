@@ -1,4 +1,4 @@
-package k3SQLServer
+package core
 
 import (
 	"bufio"
@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-func createDatabaseFile(name string) error {
-	return os.Mkdir(k3sqlDataPath+name, 0700)
+func CreateDatabaseFile(name string) error {
+	return os.Mkdir(K3sqlDataPath+name, 0700)
 }
 
-func databaseExists(name string) bool {
+func DatabaseExists(name string) bool {
 	if len(name) > 0 {
-		_, err := os.Stat(k3sqlDataPath + name)
+		_, err := os.Stat(K3sqlDataPath + name)
 		if err == nil {
 			return true
 		}
@@ -25,21 +25,21 @@ func databaseExists(name string) bool {
 	return false
 }
 
-func checkCredentialsFiles(dbName, user, password string) (bool, error) {
-	if !databaseExists(dbName) {
-		return false, errors.New(databaseNotExists)
+func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
+	if !DatabaseExists(dbName) {
+		return false, errors.New(DatabaseNotExists)
 	}
 
-	tableKey := dbName + ".users"
-	usersTable, ok := k3Tables[tableKey]
+	TableKey := dbName + ".users"
+	usersTable, ok := K3Tables[TableKey]
 	if !ok {
-		return false, errors.New(tableNotExists)
+		return false, errors.New(TableNotExists)
 	}
 
-	usersTable.mu.RLock()
-	defer usersTable.mu.RUnlock()
+	usersTable.Mu.RLock()
+	defer usersTable.Mu.RUnlock()
 
-	filePath := k3sqlDataPath + dbName + "/users" + extension
+	filePath := K3sqlDataPath + dbName + "/users" + Extension
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false, err
@@ -49,7 +49,7 @@ func checkCredentialsFiles(dbName, user, password string) (bool, error) {
 	scanner := bufio.NewScanner(file)
 
 	if !scanner.Scan() {
-		return false, errors.New(fileFormatError)
+		return false, errors.New(FileFormatError)
 	}
 
 	for scanner.Scan() {
@@ -59,12 +59,12 @@ func checkCredentialsFiles(dbName, user, password string) (bool, error) {
 			if err == nil {
 				return true, nil
 			} else {
-				return false, errors.New(wrongPassword)
+				return false, errors.New(WrongPassword)
 			}
 		}
 	}
 
-	return false, errors.New(userNotFound)
+	return false, errors.New(UserNotFound)
 }
 
 func parseUserRecord(line string) map[string]string {
@@ -75,8 +75,8 @@ func parseUserRecord(line string) map[string]string {
 	}
 }
 
-func existsTable(table *k3Table) bool {
-	file, err := os.Open(k3sqlDataPath + table.database + "/" + table.name + extension)
+func ExistsTable(Table *K3Table) bool {
+	file, err := os.Open(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
 	defer file.Close()
 	if err == nil {
 		data := make([]byte, 128)
@@ -92,31 +92,31 @@ func existsTable(table *k3Table) bool {
 	return false
 }
 
-func addFieldsTableFile(table *k3Table) error {
-	file, err := os.Open(k3sqlDataPath + table.database + "/" + table.name + extension)
+func AddFieldsTableFile(Table *K3Table) error {
+	file, err := os.Open(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
 	if err == nil {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		scanner.Scan()
 		dataStr := scanner.Text()
 		parts := strings.Split(dataStr, "|")
-		tableFields := make([]string, len(parts))
+		TableFields := make([]string, len(parts))
 		for i := 0; i < len(parts); i++ {
-			tableFields[i] = parts[i][2:]
+			TableFields[i] = parts[i][2:]
 		}
-		table.fields = tableFields
+		Table.Fields = TableFields
 	}
 	return err
 }
 
-func createTableFile(query *k3CreateQuery) error {
-	file, err := os.Create(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
+func CreateTableFile(query *K3CreateQuery) error {
+	file, err := os.Create(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
 	defer file.Close()
 	if err == nil {
 		writer := bufio.NewWriter(file)
 		str := ""
-		for _, field := range query.table.fields {
-			str += fmt.Sprintf("%d %s|", query.fields[field], field)
+		for _, field := range query.Table.Fields {
+			str += fmt.Sprintf("%d %s|", query.Fields[field], field)
 		}
 		_, err = writer.WriteString(strings.TrimSuffix(str, "|") + "\n")
 		if err != nil {
@@ -130,33 +130,33 @@ func createTableFile(query *k3CreateQuery) error {
 	return err
 }
 
-func insertTableFile(query *k3InsertQuery) error {
-	query.table.mu.Lock()
-	defer query.table.mu.Unlock()
-	fileRead, err := os.Open(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
+func InsertTableFile(query *K3InsertQuery) error {
+	query.Table.Mu.Lock()
+	defer query.Table.Mu.Unlock()
+	fileRead, err := os.Open(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
 	if err == nil {
 		scanner := bufio.NewScanner(fileRead)
 		scanner.Scan()
 		dataStr := scanner.Text()
 		fileRead.Close()
 		parts := strings.Split(dataStr, "|")
-		tableTypes := make(map[string]int, len(parts))
+		TableTypes := make(map[string]int, len(parts))
 		for _, part := range parts {
-			tableType, err := strconv.Atoi(string(part[0]))
+			TableType, err := strconv.Atoi(string(part[0]))
 			if err != nil {
 				return err
 			}
-			tableTypes[part[2:]] = tableType
+			TableTypes[part[2:]] = TableType
 		}
-		file, err := os.OpenFile(k3sqlDataPath+query.table.database+"/"+query.table.name+extension, os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(K3sqlDataPath+query.Table.Database+"/"+query.Table.Name+Extension, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
 		defer file.Close()
-		for _, value := range query.values {
+		for _, value := range query.Values {
 			str := ""
-			for _, k := range query.table.fields {
-				if tableTypes[k] == k3INT {
+			for _, k := range query.Table.Fields {
+				if TableTypes[k] == K3INT {
 					v, ok := value[k]
 					if ok {
 						_, err := strconv.Atoi(v)
@@ -165,9 +165,9 @@ func insertTableFile(query *k3InsertQuery) error {
 						}
 						str += v + "|"
 					} else {
-						return errors.New(fmt.Sprintf("empty column: %s", k))
+						return errors.New(fmt.Sprintf("empty Column: %s", k))
 					}
-				} else if tableTypes[k] == k3FLOAT {
+				} else if TableTypes[k] == K3FLOAT {
 					v, ok := value[k]
 					if ok {
 						_, err := strconv.ParseFloat(v, 64)
@@ -176,14 +176,14 @@ func insertTableFile(query *k3InsertQuery) error {
 						}
 						str += v + "|"
 					} else {
-						return errors.New(fmt.Sprintf("empty column: %s", k))
+						return errors.New(fmt.Sprintf("empty Column: %s", k))
 					}
-				} else if tableTypes[k] == k3TEXT {
+				} else if TableTypes[k] == K3TEXT {
 					v, ok := value[k]
 					if ok {
 						str += v + "|"
 					} else {
-						return errors.New(fmt.Sprintf("empty column: %s", k))
+						return errors.New(fmt.Sprintf("empty Column: %s", k))
 					}
 				} else {
 					return errors.New("unknown type")
@@ -198,30 +198,31 @@ func insertTableFile(query *k3InsertQuery) error {
 	return err
 }
 
-func dropTableFile(table *k3Table) error {
-	table.mu.Lock()
-	defer table.mu.Unlock()
-	return os.Remove(k3sqlDataPath + table.database + "/" + table.name + extension)
+func DropTableFile(Table *K3Table) error {
+	Table.Mu.Lock()
+	defer Table.Mu.Unlock()
+	return os.Remove(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
 }
 
-func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
-	query.table.mu.RLock()
-	defer query.table.mu.RUnlock()
-	fileRead, err := os.Open(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
+func SelectTableFile(query *K3SelectQuery) ([]map[string]string, int, error) {
+	query.Table.Mu.RLock()
+	defer query.Table.Mu.RUnlock()
+	fileRead, err := os.Open(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer fileRead.Close()
 	scanner := bufio.NewScanner(fileRead)
 	scanner.Scan()
 	var results []map[string]string
+	rows := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		record := parseRecord(line, query.table.fields)
+		record := parseRecord(line, query.Table.Fields)
 
-		if satisfiesConditions(record, query.conditions) {
+		if satisfiesConditions(record, query.Conditions) {
 			filteredRecord := make(map[string]string)
-			for _, field := range query.values {
+			for _, field := range query.Values {
 				if field == "*" {
 					for k, v := range record {
 						filteredRecord[k] = v
@@ -231,22 +232,22 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 					if val, ok := record[field]; ok {
 						filteredRecord[field] = val
 					} else {
-						return nil, fmt.Errorf("field %s not found", field)
+						return nil, 0, fmt.Errorf("field %s not found", field)
 					}
 				}
 			}
 			results = append(results, filteredRecord)
+			rows++
 		}
 	}
-
-	return results, nil
+	return results, rows, nil
 }
 
-func updateTableFile(query *k3UpdateQuery) (int, error) {
-	query.table.mu.Lock()
-	defer query.table.mu.Unlock()
+func UpdateTableFile(query *K3UpdateQuery) (int, error) {
+	query.Table.Mu.Lock()
+	defer query.Table.Mu.Unlock()
 
-	filePath := k3sqlDataPath + query.table.database + "/" + query.table.name + extension
+	filePath := K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension
 	tempFilePath := filePath + ".tmp"
 
 	file, err := os.Open(filePath)
@@ -274,16 +275,16 @@ func updateTableFile(query *k3UpdateQuery) (int, error) {
 	updatedCount := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		record := parseRecord(line, query.table.fields)
-		if len(query.conditions) == 0 || satisfiesConditions(record, query.conditions) {
-			for col, val := range query.setValues {
+		record := parseRecord(line, query.Table.Fields)
+		if len(query.Conditions) == 0 || satisfiesConditions(record, query.Conditions) {
+			for col, val := range query.SetValues {
 				if _, exists := record[col]; exists {
 					record[col] = val
 				}
 			}
 			updatedCount++
 			var newLine strings.Builder
-			for i, field := range query.table.fields {
+			for i, field := range query.Table.Fields {
 				if i > 0 {
 					newLine.WriteString("|")
 				}
@@ -308,11 +309,11 @@ func updateTableFile(query *k3UpdateQuery) (int, error) {
 	return updatedCount, nil
 }
 
-func deleteTableFile(query *k3DeleteQuery) (int, error) {
-	query.table.mu.Lock()
-	defer query.table.mu.Unlock()
+func DeleteTableFile(query *K3DeleteQuery) (int, error) {
+	query.Table.Mu.Lock()
+	defer query.Table.Mu.Unlock()
 
-	filePath := k3sqlDataPath + query.table.database + "/" + query.table.name + extension
+	filePath := K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension
 	tempFilePath := filePath + ".tmp"
 
 	file, err := os.Open(filePath)
@@ -336,8 +337,8 @@ func deleteTableFile(query *k3DeleteQuery) (int, error) {
 	deletedCount := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		record := parseRecord(line, query.table.fields)
-		if len(query.conditions) == 0 || !satisfiesConditions(record, query.conditions) {
+		record := parseRecord(line, query.Table.Fields)
+		if len(query.Conditions) == 0 || !satisfiesConditions(record, query.Conditions) {
 			if _, err := writer.WriteString(line + "\n"); err != nil {
 				return deletedCount, err
 			}
@@ -369,16 +370,16 @@ func parseRecord(line string, fields []string) map[string]string {
 	return record
 }
 
-func satisfiesConditions(record map[string]string, conditions []k3Condition) bool {
+func satisfiesConditions(record map[string]string, conditions []K3Condition) bool {
 	for _, cond := range conditions {
-		recordValue, ok := record[cond.column]
+		recordValue, ok := record[cond.Column]
 		if !ok {
 			return false
 		}
 
-		switch cond.operator {
+		switch cond.Operator {
 		case "LIKE":
-			likePattern := strings.ReplaceAll(cond.value, "%", ".*")
+			likePattern := strings.ReplaceAll(cond.Value, "%", ".*")
 			likePattern = strings.ReplaceAll(likePattern, "_", ".")
 			likePattern = "^" + likePattern + "$"
 
@@ -387,27 +388,27 @@ func satisfiesConditions(record map[string]string, conditions []k3Condition) boo
 				return false
 			}
 		case "=":
-			if recordValue != cond.value {
+			if recordValue != cond.Value {
 				return false
 			}
 		case "!=":
-			if recordValue == cond.value {
+			if recordValue == cond.Value {
 				return false
 			}
 		case ">":
-			if !compareValues(recordValue, cond.value, false) {
+			if !compareValues(recordValue, cond.Value, false) {
 				return false
 			}
 		case "<":
-			if !compareValues(cond.value, recordValue, false) {
+			if !compareValues(cond.Value, recordValue, false) {
 				return false
 			}
 		case ">=":
-			if !compareValues(recordValue, cond.value, true) {
+			if !compareValues(recordValue, cond.Value, true) {
 				return false
 			}
 		case "<=":
-			if !compareValues(cond.value, recordValue, true) {
+			if !compareValues(cond.Value, recordValue, true) {
 				return false
 			}
 		}
