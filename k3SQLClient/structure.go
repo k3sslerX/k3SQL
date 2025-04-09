@@ -7,7 +7,6 @@ const (
 	SendingFail        = "sending failure"
 	ReadingFail        = "reading failure"
 	ConnectionIsNotSet = "connection is not set"
-	AuthFail           = "authentication failure"
 )
 
 type K3Server struct {

@@ -43,7 +43,7 @@ func (conn *K3Connection) authenticate(server K3Server) error {
 	reader := bufio.NewReader(conn.Conn)
 	response, err := reader.ReadString('\n')
 	if err != nil {
-		return err
+		return errors.New(ReadingFail)
 	}
 
 	resp := k3Response{}
