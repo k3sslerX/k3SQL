@@ -104,9 +104,10 @@ type k3QueryRequest struct {
 }
 
 type k3QueryResponse struct {
-	RespType string              `json:"resp_type"`
-	Status   bool                `json:"status"`
-	Message  string              `json:"message"`
-	Fields   []map[string]string `json:"fields"`
-	Error    string              `json:"error"`
+	RespType    string              `json:"resp_type"`
+	Status      bool                `json:"status"`
+	Message     string              `json:"message"`
+	TableFields []string            `json:"table_fields"`
+	Fields      []map[string]string `json:"fields"`
+	Error       string              `json:"error"`
 }

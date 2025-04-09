@@ -27,6 +27,7 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			response.Fields = resp
 			if err == nil {
 				response.Status = true
+				response.TableFields = query.table.fields
 				response.Message = fmt.Sprintf("%d rows found", rows)
 			} else {
 				response.Error = err.Error()
