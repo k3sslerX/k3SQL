@@ -31,3 +31,12 @@ type k3Request struct {
 	Database string `json:"database"`
 	Query    string `json:"query"`
 }
+
+type k3Response struct {
+	RespType    string              `json:"resp_type"`
+	Status      bool                `json:"status"`
+	Message     string              `json:"message"`
+	TableFields []string            `json:"table_fields"`
+	Fields      []map[string]string `json:"fields"`
+	Error       string              `json:"error"`
+}

@@ -46,8 +46,15 @@ func (conn *K3Connection) authenticate(server K3Server) error {
 		return err
 	}
 
-	if response != "OK\n" {
-		return errors.New(response)
+	resp := k3Response{}
+	err = json.Unmarshal([]byte(response), &resp)
+
+	if err != nil {
+		return err
+	} else {
+		if resp.Status && resp.RespType == "auth" {
+			return nil
+		}
 	}
 
 	conn.Authenticated = true
@@ -79,21 +86,25 @@ func (conn *K3Connection) Query(query string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var response []byte
-	buf := make([]byte, 1024)
-	for {
-		n, err := reader.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				return "", errors.New(ReadingFail)
-			}
-			break
-		} else {
-			response = append(response, buf[:n]...)
-			break
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		if err != io.EOF {
+			return "", err
 		}
 	}
-	return string(response), nil
+	resp := k3Response{}
+	var outStr string
+	err = json.Unmarshal([]byte(response), &resp)
+	if err != nil {
+		return "", err
+	} else {
+		if resp.Status && resp.RespType == "query" {
+			outStr = parseOutput(resp.Fields, resp.TableFields)
+		} else {
+			outStr = resp.Error + "\n"
+		}
+	}
+	return outStr, nil
 }
 
 func Connect(server K3Server) (*K3Connection, error) {
