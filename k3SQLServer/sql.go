@@ -31,6 +31,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			} else {
 				response.Error = err.Error()
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	case "create":
@@ -53,6 +55,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 					response.Error = err.Error()
 				}
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	case "insert":
@@ -65,6 +69,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			} else {
 				response.Error = err.Error()
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	case "update":
@@ -77,6 +83,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			} else {
 				response.Error = err.Error()
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	case "drop":
@@ -89,6 +97,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			} else {
 				response.Error = err.Error()
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	case "delete":
@@ -101,6 +111,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			} else {
 				response.Error = err.Error()
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	case "user":
@@ -113,6 +125,8 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 			} else {
 				response.Error = err.Error()
 			}
+		} else {
+			response.Error = err.Error()
 		}
 		return response
 	default:
