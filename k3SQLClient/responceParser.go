@@ -5,11 +5,12 @@ import (
 	"strings"
 )
 
-func parseOutput(resp []map[string]string, tableFields []string) string {
+func parseOutput(resp []map[string]string, msg string, tableFields []string) string {
+	var str string
 	if len(resp) > 0 {
 		fields := make([]string, len(resp[0]))
 		cnt := 0
-		str := "|"
+		str += "|"
 		for _, k := range tableFields {
 			if _, ok := resp[0][k]; ok {
 				fields[cnt] = k
@@ -27,7 +28,10 @@ func parseOutput(resp []map[string]string, tableFields []string) string {
 			}
 			str += "\n"
 		}
-		return str
 	}
-	return "empty result"
+	if msg == "" {
+		str += "empty result\n"
+	}
+	str += msg + "\n"
+	return str
 }

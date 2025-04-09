@@ -99,7 +99,7 @@ func (conn *K3Connection) Query(query string) (string, error) {
 		return "", err
 	} else {
 		if resp.Status && resp.RespType == "query" {
-			outStr = parseOutput(resp.Fields, resp.TableFields)
+			outStr = parseOutput(resp.Fields, resp.Message, resp.TableFields)
 		} else {
 			outStr = resp.Error + "\n"
 		}
