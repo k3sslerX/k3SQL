@@ -1,9 +1,10 @@
-package k3SQLServer
+package server
 
 import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"k3SQLServer/core"
 	"net"
 )
 
@@ -13,6 +14,15 @@ type k3QueryRequest struct {
 	Password string `json:"password"`
 	Database string `json:"database"`
 	Query    string `json:"query"`
+}
+
+type k3QueryResponse struct {
+	RespType    string              `json:"resp_type"`
+	Status      bool                `json:"status"`
+	Message     string              `json:"message"`
+	TableFields []string            `json:"table_fields"`
+	Fields      []map[string]string `json:"fields"`
+	Error       string              `json:"error"`
 }
 
 func handleConnection(conn net.Conn) {
@@ -26,20 +36,29 @@ func handleConnection(conn net.Conn) {
 	}
 
 	var authReq k3QueryRequest
+	var authResp k3QueryResponse
+	authResp.RespType = "auth"
 	if err := json.Unmarshal([]byte(authLine), &authReq); err != nil {
-		conn.Write([]byte(invalidAuthFormat + "\n"))
+		authResp.Status = false
+		authResp.Error = core.InvalidAuthFormat
+		resp, _ := json.Marshal(authResp)
+		conn.Write(append(resp, '\n'))
 		return
 	}
 
-	resp, err := checkCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
-	if !resp {
-		conn.Write([]byte(err.Error() + "\n"))
+	respFlag, err := core.CheckCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
+	if !respFlag {
+		authResp.Status = false
+		authResp.Error = err.Error()
+		resp, _ := json.Marshal(authResp)
+		conn.Write(append(resp, '\n'))
 		return
 	}
 
 	db := authReq.Database
-
-	conn.Write([]byte("OK\n"))
+	authResp.Status = true
+	resp, _ := json.Marshal(authResp)
+	conn.Write(append(resp, '\n'))
 	for {
 		reqStr, err := reader.ReadString('\n')
 		if err != nil {
@@ -54,24 +73,21 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte(err.Error() + "\n"))
 		}
 		if req.Action == "query" {
-			result, err := querySQL(req.Query, db)
-			if err == nil {
-				conn.Write([]byte(result))
-			} else {
-				conn.Write([]byte(err.Error() + "\n"))
-			}
+			result := querySQL(req.Query, db)
+			output, _ := json.Marshal(result)
+			conn.Write(append(output, '\n'))
 			if err != nil {
 				fmt.Println("Sending error:", err)
 				return
 			}
 		} else {
-			conn.Write([]byte(unknownAction + "\n"))
+			conn.Write([]byte(core.UnknownAction + "\n"))
 		}
 	}
 }
 
 func ConnectServer(host, port string) {
-	err := startService()
+	err := core.StartService()
 	if err != nil {
 		fmt.Println("Can't start K3SQLServer service")
 		return

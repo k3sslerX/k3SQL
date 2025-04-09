@@ -4,7 +4,7 @@ COPY k3SQLServer/go.mod k3SQLServer/go.sum ./
 COPY k3SQLServer/ ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o k3sql-server ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o k3sql-server ./main.go
 
 FROM alpine:latest
 
