@@ -204,17 +204,18 @@ func dropTableFile(table *k3Table) error {
 	return os.Remove(k3sqlDataPath + table.database + "/" + table.name + extension)
 }
 
-func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
+func selectTableFile(query *k3SelectQuery) ([]map[string]string, int, error) {
 	query.table.mu.RLock()
 	defer query.table.mu.RUnlock()
 	fileRead, err := os.Open(k3sqlDataPath + query.table.database + "/" + query.table.name + extension)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer fileRead.Close()
 	scanner := bufio.NewScanner(fileRead)
 	scanner.Scan()
 	var results []map[string]string
+	rows := 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		record := parseRecord(line, query.table.fields)
@@ -231,15 +232,15 @@ func selectTableFile(query *k3SelectQuery) ([]map[string]string, error) {
 					if val, ok := record[field]; ok {
 						filteredRecord[field] = val
 					} else {
-						return nil, fmt.Errorf("field %s not found", field)
+						return nil, 0, fmt.Errorf("field %s not found", field)
 					}
 				}
 			}
 			results = append(results, filteredRecord)
+			rows++
 		}
 	}
-
-	return results, nil
+	return results, rows, nil
 }
 
 func updateTableFile(query *k3UpdateQuery) (int, error) {
