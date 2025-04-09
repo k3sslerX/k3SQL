@@ -93,3 +93,20 @@ type k3UserQuery struct {
 }
 
 var k3Tables map[string]*k3Table
+
+// CONNECTION
+type k3QueryRequest struct {
+	Action   string `json:"action"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+	Query    string `json:"query"`
+}
+
+type k3QueryResponse struct {
+	RespType string              `json:"resp_type"`
+	Status   bool                `json:"status"`
+	Message  string              `json:"message"`
+	Fields   []map[string]string `json:"fields"`
+	Error    string              `json:"error"`
+}
