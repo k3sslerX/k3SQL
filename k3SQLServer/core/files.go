@@ -30,7 +30,7 @@ func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 		return false, errors.New(DatabaseNotExists)
 	}
 
-	TableKey := dbName + ".users"
+	TableKey := dbName + "." + K3UsersTable
 	usersTable, ok := K3Tables[TableKey]
 	if !ok {
 		return false, errors.New(TableNotExists)
@@ -39,7 +39,7 @@ func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 	usersTable.Mu.RLock()
 	defer usersTable.Mu.RUnlock()
 
-	filePath := K3sqlDataPath + dbName + "/users" + Extension
+	filePath := K3sqlDataPath + dbName + "/" + K3UsersTable + Extension
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false, err

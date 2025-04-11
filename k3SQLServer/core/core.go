@@ -12,34 +12,60 @@ func CreateDatabase(name string) error {
 	if !DatabaseExists(name) {
 		err := CreateDatabaseFile(name)
 		if err == nil {
-			tableFields := make([]string, 2)
-			tableFields[0], tableFields[1] = "name", "password"
-			table := K3Table{
+			userTableFields := make([]string, 2)
+			tablesTableFields := make([]string, 1)
+			userTableFields[0], userTableFields[1] = "name", "password"
+			tablesTableFields[0] = "table"
+			userTable := K3Table{
 				Database: name,
-				Name:     "users",
-				Fields:   tableFields,
+				Name:     K3UsersTable,
+				Fields:   userTableFields,
 				Mu:       new(sync.RWMutex),
 			}
-			queryFields := make(map[string]int, 2)
-			queryFields["name"] = 3
-			queryFields["password"] = 3
-			query := K3CreateQuery{
-				Table:  &table,
-				Fields: queryFields,
+			tablesTable := K3Table{
+				Database: name,
+				Name:     K3TablesTable,
+				Fields:   tablesTableFields,
+				Mu:       new(sync.RWMutex),
 			}
-			err = CreateTable(&query)
+			queryUsersFields := make(map[string]int, 2)
+			queryTablesFields := make(map[string]int, 1)
+			queryTablesFields["table"] = 3
+			queryUsersFields["name"] = 3
+			queryUsersFields["password"] = 3
+			queryUsers := K3CreateQuery{
+				Table:  &userTable,
+				Fields: queryUsersFields,
+			}
+			queryTables := K3CreateQuery{
+				Table:  &tablesTable,
+				Fields: queryTablesFields,
+			}
+			err = CreateTable(&queryUsers)
 			if err == nil {
-				K3Tables[table.Database+"."+table.Name] = &table
+				K3Tables[userTable.Database+"."+userTable.Name] = &userTable
 			}
-			insertValues := make([]map[string]string, 1)
-			insertValues[0] = make(map[string]string, 2)
-			insertValues[0]["name"] = "k3user"
-			insertValues[0]["password"] = "333"
-			insertQuery := K3InsertQuery{
-				Table:  &table,
-				Values: insertValues,
+			insertUsersValues := make([]map[string]string, 1)
+			insertUsersValues[0] = make(map[string]string, 2)
+			insertUsersValues[0]["name"] = "k3user"
+			insertUsersValues[0]["password"] = "333"
+			insertUsersQuery := K3InsertQuery{
+				Table:  &userTable,
+				Values: insertUsersValues,
 			}
-			err = InsertTable(&insertQuery)
+			err = InsertTable(&insertUsersQuery)
+			err = CreateTable(&queryTables)
+			if err == nil {
+				K3Tables[userTable.Database+"."+tablesTable.Name] = &tablesTable
+			}
+			insertTablesValues := make([]map[string]string, 1)
+			insertTablesValues[0] = make(map[string]string, 2)
+			insertTablesValues[0]["table"] = K3UsersTable
+			insertTablesQuery := K3InsertQuery{
+				Table:  &tablesTable,
+				Values: insertTablesValues,
+			}
+			err = InsertTable(&insertTablesQuery)
 		}
 		return err
 	}
