@@ -79,9 +79,23 @@ func DropTable(table *K3Table) error {
 			if table.Name == K3UsersTable || table.Name == K3TablesTable {
 				return errors.New(AccessDenied)
 			}
-			err := DropTableFile(table)
+			conditions := make([]K3Condition, 1)
+			condition := K3Condition{
+				Column:   "table",
+				Value:    table.Name,
+				Operator: "=",
+			}
+			conditions[0] = condition
+			query := K3DeleteQuery{
+				Table:      K3Tables[table.Database+"."+K3TablesTable],
+				Conditions: conditions,
+			}
+			_, err := DeleteTableFile(&query)
 			if err == nil {
-				delete(K3Tables, table.Database+"."+table.Name)
+				err = DropTableFile(table)
+				if err == nil {
+					delete(K3Tables, table.Database+"."+table.Name)
+				}
 			}
 			return err
 		}
