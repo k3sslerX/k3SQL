@@ -8,6 +8,25 @@ import (
 	"sync"
 )
 
+func init() {
+	K3Tables = make(map[string]*K3Table, 1)
+	initialised := false
+	_, err := os.Stat(K3FilesPath)
+	if err == nil {
+		initialised = true
+	}
+	if !initialised {
+		err = os.MkdirAll(K3FilesPath, os.ModePerm)
+		if err == nil {
+			err1 := os.MkdirAll(K3DataPath, os.ModePerm)
+			err2 := os.MkdirAll(K3ConfigurationPath, os.ModePerm)
+			if err1 == nil && err2 == nil {
+				err = CreateDatabase("k3db")
+			}
+		}
+	}
+}
+
 func CreateDatabase(name string) error {
 	if !DatabaseExists(name) {
 		err := CreateDatabaseFile(name)
@@ -74,11 +93,10 @@ func readAllFiles(rootDir string, callback func(path string, isDir bool) error) 
 }
 
 func StartService() error {
-	K3Tables = make(map[string]*K3Table, 1)
 	err := readAllFiles(K3FilesPath, func(path string, isDir bool) error {
 		if !isDir {
-			if strings.HasPrefix(path, K3sqlDataPath) && strings.HasSuffix(path, Extension) {
-				path = strings.TrimPrefix(path, K3sqlDataPath)
+			if strings.HasPrefix(path, K3DataPath) && strings.HasSuffix(path, Extension) {
+				path = strings.TrimPrefix(path, K3DataPath)
 				path = strings.TrimSuffix(path, Extension)
 				fileParts := strings.Split(path, "/")
 				if len(fileParts) == 2 {
