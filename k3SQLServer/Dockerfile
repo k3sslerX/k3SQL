@@ -11,8 +11,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/k3sql-server .
 
-RUN chmod +x k3sql-server && \
-    chown -R 1000:1000 /opt/k3SQL
+RUN chmod +x k3sql-server
 
 EXPOSE 3003
 CMD ["sudo ./k3sql-server", "0.0.0.0", "3003"]
