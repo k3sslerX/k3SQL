@@ -10,6 +10,14 @@ func CreateTable(query *K3CreateQuery) error {
 			err := CreateTableFile(query)
 			if err == nil {
 				K3Tables[query.Table.Database+"."+query.Table.Name] = query.Table
+				insertValues := make([]map[string]string, 1)
+				insertValues[0] = make(map[string]string, 1)
+				insertValues[0]["table"] = query.Table.Name
+				insertQuery := K3InsertQuery{
+					Table:  K3Tables[query.Table.Database+"."+K3TablesTable],
+					Values: insertValues,
+				}
+				err = InsertTable(&insertQuery)
 			}
 			return err
 		}
