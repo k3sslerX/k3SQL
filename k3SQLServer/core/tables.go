@@ -50,7 +50,7 @@ func SelectTable(query *K3SelectQuery) ([]map[string]string, int, error) {
 func UpdateTable(query *K3UpdateQuery) (int, error) {
 	if DatabaseExists(query.Table.Database) {
 		if ExistsTable(query.Table) {
-			if query.Table.Name == "users" {
+			if query.Table.Name == K3UsersTable || query.Table.Name == K3TablesTable {
 				return 0, errors.New(AccessDenied)
 			}
 			return UpdateTableFile(query)
@@ -63,7 +63,7 @@ func UpdateTable(query *K3UpdateQuery) (int, error) {
 func DeleteTable(query *K3DeleteQuery) (int, error) {
 	if DatabaseExists(query.Table.Database) {
 		if ExistsTable(query.Table) {
-			if query.Table.Name == "users" {
+			if query.Table.Name == K3UsersTable || query.Table.Name == K3TablesTable {
 				return 0, errors.New(AccessDenied)
 			}
 			return DeleteTableFile(query)
@@ -76,7 +76,7 @@ func DeleteTable(query *K3DeleteQuery) (int, error) {
 func DropTable(table *K3Table) error {
 	if DatabaseExists(table.Database) {
 		if ExistsTable(table) {
-			if table.Name == "users" {
+			if table.Name == K3UsersTable || table.Name == K3TablesTable {
 				return errors.New(AccessDenied)
 			}
 			err := DropTableFile(table)
@@ -102,7 +102,7 @@ func ProcessUser(userQuery *K3UserQuery) error {
 		}
 		if userQuery.Action == K3CREATE {
 			insertQuery := &K3InsertQuery{
-				Table:  K3Tables[userQuery.Database+".users"],
+				Table:  K3Tables[userQuery.Database+"."+K3UsersTable],
 				Values: values,
 			}
 			return InsertTableFile(insertQuery)
@@ -114,7 +114,7 @@ func ProcessUser(userQuery *K3UserQuery) error {
 				Value:    userQuery.Username,
 			}
 			deleteQuery := &K3DeleteQuery{
-				Table:      K3Tables[userQuery.Database+".users"],
+				Table:      K3Tables[userQuery.Database+"."+K3UsersTable],
 				Conditions: cond,
 			}
 			n, err := DeleteTableFile(deleteQuery)
