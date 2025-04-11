@@ -14,4 +14,4 @@ COPY --from=builder /app/k3sql-server .
 RUN chmod +x k3sql-server
 
 EXPOSE 3003
-CMD ["sudo", "./k3sql-server", "0.0.0.0", "3003"]
+CMD ["./k3sql-server", "0.0.0.0", "3003"]
