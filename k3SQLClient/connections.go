@@ -87,7 +87,6 @@ func (conn *K3Connection) Query(query string) (string, error) {
 		return "", err
 	}
 	response, err := reader.ReadString('\n')
-	fmt.Println(response)
 	if err != nil {
 		if err != io.EOF {
 			return "", err
