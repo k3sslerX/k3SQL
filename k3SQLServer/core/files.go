@@ -102,7 +102,11 @@ func AddFieldsTableFile(Table *K3Table) error {
 		parts := strings.Split(dataStr, "|")
 		TableFields := make([]string, len(parts))
 		for i := 0; i < len(parts); i++ {
-			TableFields[i] = parts[i][2:]
+			if len(parts[i]) > 2 {
+				TableFields[i] = parts[i][2:]
+			} else {
+				return errors.New(FileFormatError)
+			}
 		}
 		Table.Fields = TableFields
 	}
