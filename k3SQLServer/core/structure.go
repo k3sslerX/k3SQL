@@ -4,9 +4,12 @@ import "sync"
 
 // FILES CONST
 const K3FilesPath = "/opt/k3SQL/"
-const K3configurationPath = K3FilesPath + "config/"
-const K3sqlDataPath = K3FilesPath + "data/"
+const K3ConfigurationPath = K3FilesPath + "config/"
+const K3DataPath = K3FilesPath + "data/"
 const Extension = ".k3"
+const K3ServiceTablesPrefix = "k3_"
+const K3UsersTable = K3ServiceTablesPrefix + "users"
+const K3TablesTable = K3ServiceTablesPrefix + "tables"
 
 // ERROR MESSAGES
 const TableNotExists = "table does not exists"

@@ -12,12 +12,12 @@ import (
 )
 
 func CreateDatabaseFile(name string) error {
-	return os.Mkdir(K3sqlDataPath+name, 0700)
+	return os.Mkdir(K3DataPath+name, os.ModePerm)
 }
 
 func DatabaseExists(name string) bool {
 	if len(name) > 0 {
-		_, err := os.Stat(K3sqlDataPath + name)
+		_, err := os.Stat(K3DataPath + name)
 		if err == nil {
 			return true
 		}
@@ -30,7 +30,7 @@ func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 		return false, errors.New(DatabaseNotExists)
 	}
 
-	TableKey := dbName + ".users"
+	TableKey := dbName + "." + K3UsersTable
 	usersTable, ok := K3Tables[TableKey]
 	if !ok {
 		return false, errors.New(TableNotExists)
@@ -39,7 +39,7 @@ func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 	usersTable.Mu.RLock()
 	defer usersTable.Mu.RUnlock()
 
-	filePath := K3sqlDataPath + dbName + "/users" + Extension
+	filePath := K3DataPath + dbName + "/" + K3UsersTable + Extension
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false, err
@@ -76,7 +76,7 @@ func parseUserRecord(line string) map[string]string {
 }
 
 func ExistsTable(Table *K3Table) bool {
-	file, err := os.Open(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
+	file, err := os.Open(K3DataPath + Table.Database + "/" + Table.Name + Extension)
 	defer file.Close()
 	if err == nil {
 		data := make([]byte, 128)
@@ -93,7 +93,7 @@ func ExistsTable(Table *K3Table) bool {
 }
 
 func AddFieldsTableFile(Table *K3Table) error {
-	file, err := os.Open(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
+	file, err := os.Open(K3DataPath + Table.Database + "/" + Table.Name + Extension)
 	if err == nil {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
@@ -102,7 +102,11 @@ func AddFieldsTableFile(Table *K3Table) error {
 		parts := strings.Split(dataStr, "|")
 		TableFields := make([]string, len(parts))
 		for i := 0; i < len(parts); i++ {
-			TableFields[i] = parts[i][2:]
+			if len(parts[i]) > 2 {
+				TableFields[i] = parts[i][2:]
+			} else {
+				return errors.New(FileFormatError)
+			}
 		}
 		Table.Fields = TableFields
 	}
@@ -110,7 +114,7 @@ func AddFieldsTableFile(Table *K3Table) error {
 }
 
 func CreateTableFile(query *K3CreateQuery) error {
-	file, err := os.Create(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
+	file, err := os.Create(K3DataPath + query.Table.Database + "/" + query.Table.Name + Extension)
 	defer file.Close()
 	if err == nil {
 		writer := bufio.NewWriter(file)
@@ -133,7 +137,7 @@ func CreateTableFile(query *K3CreateQuery) error {
 func InsertTableFile(query *K3InsertQuery) error {
 	query.Table.Mu.Lock()
 	defer query.Table.Mu.Unlock()
-	fileRead, err := os.Open(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
+	fileRead, err := os.Open(K3DataPath + query.Table.Database + "/" + query.Table.Name + Extension)
 	if err == nil {
 		scanner := bufio.NewScanner(fileRead)
 		scanner.Scan()
@@ -148,7 +152,7 @@ func InsertTableFile(query *K3InsertQuery) error {
 			}
 			TableTypes[part[2:]] = TableType
 		}
-		file, err := os.OpenFile(K3sqlDataPath+query.Table.Database+"/"+query.Table.Name+Extension, os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(K3DataPath+query.Table.Database+"/"+query.Table.Name+Extension, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
@@ -201,13 +205,13 @@ func InsertTableFile(query *K3InsertQuery) error {
 func DropTableFile(Table *K3Table) error {
 	Table.Mu.Lock()
 	defer Table.Mu.Unlock()
-	return os.Remove(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
+	return os.Remove(K3DataPath + Table.Database + "/" + Table.Name + Extension)
 }
 
 func SelectTableFile(query *K3SelectQuery) ([]map[string]string, int, error) {
 	query.Table.Mu.RLock()
 	defer query.Table.Mu.RUnlock()
-	fileRead, err := os.Open(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
+	fileRead, err := os.Open(K3DataPath + query.Table.Database + "/" + query.Table.Name + Extension)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -247,7 +251,7 @@ func UpdateTableFile(query *K3UpdateQuery) (int, error) {
 	query.Table.Mu.Lock()
 	defer query.Table.Mu.Unlock()
 
-	filePath := K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension
+	filePath := K3DataPath + query.Table.Database + "/" + query.Table.Name + Extension
 	tempFilePath := filePath + ".tmp"
 
 	file, err := os.Open(filePath)
@@ -313,7 +317,7 @@ func DeleteTableFile(query *K3DeleteQuery) (int, error) {
 	query.Table.Mu.Lock()
 	defer query.Table.Mu.Unlock()
 
-	filePath := K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension
+	filePath := K3DataPath + query.Table.Database + "/" + query.Table.Name + Extension
 	tempFilePath := filePath + ".tmp"
 
 	file, err := os.Open(filePath)

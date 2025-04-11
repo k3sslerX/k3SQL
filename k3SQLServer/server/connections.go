@@ -89,7 +89,7 @@ func handleConnection(conn net.Conn) {
 func ConnectServer(host, port string) {
 	err := core.StartService()
 	if err != nil {
-		fmt.Println("Can't start K3SQLServer service")
+		fmt.Println("Can't start K3SQLServer service. Error:", err)
 		return
 	}
 	serverAddr := host + ":" + port
