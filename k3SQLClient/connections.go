@@ -46,7 +46,6 @@ func (conn *K3Connection) authenticate(server K3Server) error {
 	if err != nil {
 		return errors.New(ReadingFail)
 	}
-	fmt.Print(response)
 	resp := k3Response{}
 	err = json.Unmarshal([]byte(response), &resp)
 
