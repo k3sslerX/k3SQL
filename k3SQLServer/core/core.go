@@ -99,7 +99,7 @@ func CreateDatabase(name string) error {
 				Table:  &userTable,
 				Values: insertUsersValues,
 			}
-			err = InsertTable(&insertUsersQuery)
+			err = InsertTable(&insertUsersQuery, "k3user")
 			insertPermissionsValues := make([]map[string]string, 2)
 			insertPermissionsValues[0] = make(map[string]string, 3)
 			insertPermissionsValues[1] = make(map[string]string, 3)
@@ -113,7 +113,7 @@ func CreateDatabase(name string) error {
 				Table:  &permissionsTable,
 				Values: insertPermissionsValues,
 			}
-			err = InsertTable(&insertPermissionsQuery)
+			err = InsertTable(&insertPermissionsQuery, "k3user")
 		}
 		return err
 	}

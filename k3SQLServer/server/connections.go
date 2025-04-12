@@ -73,7 +73,7 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte(err.Error() + "\n"))
 		}
 		if req.Action == "query" {
-			result := querySQL(req.Query, db)
+			result := querySQL(req.Query, req.User, db)
 			output, _ := json.Marshal(result)
 			conn.Write(append(output, '\n'))
 			if err != nil {

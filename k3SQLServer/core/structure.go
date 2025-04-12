@@ -47,17 +47,20 @@ type K3SelectQuery struct {
 	Table      *K3Table
 	Values     []string
 	Conditions []K3Condition
+	User       string
 }
 
 type K3DeleteQuery struct {
 	Table      *K3Table
 	Conditions []K3Condition
+	User       string
 }
 
 type K3UpdateQuery struct {
 	Table      *K3Table
 	SetValues  map[string]string
 	Conditions []K3Condition
+	User       string
 }
 
 type K3Condition struct {
@@ -77,11 +80,13 @@ type K3CreateQuery struct {
 	Table       *K3Table
 	Fields      map[string]int
 	Constraints map[string]string
+	User        string
 }
 
 type K3InsertQuery struct {
 	Table  *K3Table
 	Values []map[string]string
+	User   string
 }
 
 type K3UserQuery struct {
