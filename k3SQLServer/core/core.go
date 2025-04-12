@@ -79,21 +79,36 @@ func CreateDatabase(name string) error {
 				Table:  &permissionsTable,
 				Fields: queryPermissionsFields,
 			}
-			K3Tables[userTable.Database+"."+tablesTable.Name] = &tablesTable
-			err = CreateTable(&queryTables)
+			err = CreateTableFile(&queryTables)
 			if err != nil {
 				return err
 			}
-			K3Tables[userTable.Database+"."+userTable.Name] = &userTable
-			err = CreateTable(&queryUsers)
+			err = CreateTableFile(&queryUsers)
 			if err != nil {
 				return err
 			}
-			K3Tables[permissionsTable.Database+"."+permissionsTable.Name] = &permissionsTable
-			err = CreateTable(&queryPermissions)
+			err = CreateTableFile(&queryPermissions)
 			if err != nil {
 				return err
 			}
+			insertPermissionsValues := make([]map[string]string, 3)
+			insertPermissionsValues[0] = make(map[string]string, 3)
+			insertPermissionsValues[1] = make(map[string]string, 3)
+			insertPermissionsValues[2] = make(map[string]string, 3)
+			insertPermissionsValues[0]["user"] = "k3user"
+			insertPermissionsValues[0]["table"] = K3UsersTable
+			insertPermissionsValues[0]["permission"] = strconv.Itoa(K3Read)
+			insertPermissionsValues[1]["user"] = "k3user"
+			insertPermissionsValues[1]["table"] = K3TablesTable
+			insertPermissionsValues[1]["permission"] = strconv.Itoa(K3Read)
+			insertPermissionsValues[2]["user"] = "k3user"
+			insertPermissionsValues[2]["table"] = K3PermissionsTable
+			insertPermissionsValues[2]["permission"] = strconv.Itoa(K3All)
+			insertPermissionsQuery := K3InsertQuery{
+				Table:  &permissionsTable,
+				Values: insertPermissionsValues,
+			}
+			err = InsertTableFile(&insertPermissionsQuery)
 			insertUsersValues := make([]map[string]string, 1)
 			insertUsersValues[0] = make(map[string]string, 2)
 			insertUsersValues[0]["name"] = "k3user"
@@ -102,21 +117,19 @@ func CreateDatabase(name string) error {
 				Table:  &userTable,
 				Values: insertUsersValues,
 			}
-			err = InsertTable(&insertUsersQuery, "k3user")
-			insertPermissionsValues := make([]map[string]string, 2)
-			insertPermissionsValues[0] = make(map[string]string, 3)
-			insertPermissionsValues[1] = make(map[string]string, 3)
-			insertPermissionsValues[0]["user"] = "k3user"
-			insertPermissionsValues[0]["table"] = K3UsersTable
-			insertPermissionsValues[0]["permission"] = strconv.Itoa(K3Read)
-			insertPermissionsValues[1]["user"] = "k3user"
-			insertPermissionsValues[1]["table"] = K3TablesTable
-			insertPermissionsValues[1]["permission"] = strconv.Itoa(K3Read)
-			insertPermissionsQuery := K3InsertQuery{
-				Table:  &permissionsTable,
-				Values: insertPermissionsValues,
+			err = InsertTableFile(&insertUsersQuery)
+			insertTablesValues := make([]map[string]string, 3)
+			insertTablesValues[0] = make(map[string]string, 1)
+			insertTablesValues[1] = make(map[string]string, 1)
+			insertTablesValues[2] = make(map[string]string, 1)
+			insertTablesValues[0]["table"] = K3UsersTable
+			insertTablesValues[1]["table"] = K3TablesTable
+			insertTablesValues[2]["table"] = K3PermissionsTable
+			insertTablesQuery := K3InsertQuery{
+				Table:  &tablesTable,
+				Values: insertTablesValues,
 			}
-			err = InsertTable(&insertPermissionsQuery, "k3user")
+			err = InsertTableFile(&insertTablesQuery)
 		}
 		return err
 	}
