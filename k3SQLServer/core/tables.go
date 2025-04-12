@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 )
 
@@ -25,7 +24,6 @@ func checkPermission(table *K3Table, user string, permission int) bool {
 		Conditions: conditions,
 	}
 	values, _, err := SelectTableFile(&selectPermissions)
-	fmt.Println(values)
 	if err == nil {
 		for _, value := range values {
 			perm, ok := value["permission"]
