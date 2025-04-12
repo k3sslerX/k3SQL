@@ -71,6 +71,7 @@ func (conn *K3Connection) Query(query string) (string, error) {
 	}
 	req := k3Request{
 		Action: "query",
+		User:   conn.User,
 		Query:  query,
 	}
 	reqJson, err := json.Marshal(req)
@@ -117,6 +118,7 @@ func Connect(server K3Server) (*K3Connection, error) {
 
 	k3conn := &K3Connection{
 		Conn:     conn,
+		User:     server.User,
 		Database: server.Database,
 	}
 
