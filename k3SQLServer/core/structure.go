@@ -10,6 +10,12 @@ const Extension = ".k3"
 const K3ServiceTablesPrefix = "k3_"
 const K3UsersTable = K3ServiceTablesPrefix + "users"
 const K3TablesTable = K3ServiceTablesPrefix + "tables"
+const K3PermissionsTable = K3ServiceTablesPrefix + "permissions"
+
+// PERMISSIONS CONST
+const K3All = 0
+const K3Read = 1
+const K3Write = 2
 
 // ERROR MESSAGES
 const TableNotExists = "table does not exists"
