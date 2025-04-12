@@ -2,7 +2,43 @@ package core
 
 import (
 	"errors"
+	"strconv"
 )
+
+func checkPermission(table *K3Table, user string, permission int) bool {
+	approve := false
+	conditions := make([]K3Condition, 2)
+	conditions[0] = K3Condition{
+		Column:   "user",
+		Operator: "=",
+		Value:    user,
+	}
+	conditions[1] = K3Condition{
+		Column:   "table",
+		Operator: "=",
+		Value:    table.Name,
+	}
+	selectPermissions := K3SelectQuery{
+		Table:      K3Tables[table.Database+"."+K3PermissionsTable],
+		Values:     []string{"permission"},
+		Conditions: conditions,
+	}
+	values, _, err := SelectTableFile(&selectPermissions)
+	if err == nil {
+		for _, value := range values {
+			perm, ok := value["permission"]
+			if ok {
+				permInt, err := strconv.Atoi(perm)
+				if err == nil {
+					if permission >= permInt {
+						approve = true
+					}
+				}
+			}
+		}
+	}
+	return approve
+}
 
 func CreateTable(query *K3CreateQuery) error {
 	if DatabaseExists(query.Table.Database) {
@@ -17,7 +53,10 @@ func CreateTable(query *K3CreateQuery) error {
 					Table:  K3Tables[query.Table.Database+"."+K3TablesTable],
 					Values: insertValues,
 				}
-				err = InsertTable(&insertQuery)
+				err = InsertTable(&insertQuery, "k3user")
+				if err == nil {
+					err = GrantPermission(query.Table, "k3user", K3All)
+				}
 			}
 			return err
 		}
@@ -26,78 +65,107 @@ func CreateTable(query *K3CreateQuery) error {
 	return errors.New(DatabaseNotExists)
 }
 
-func InsertTable(query *K3InsertQuery) error {
+func InsertTable(query *K3InsertQuery, user string) error {
 	if DatabaseExists(query.Table.Database) {
 		if ExistsTable(query.Table) {
-			return InsertTableFile(query)
+			if checkPermission(query.Table, user, K3Write) {
+				return InsertTableFile(query)
+			}
+			return errors.New(AccessDenied)
 		}
 		return errors.New(TableNotExists)
 	}
 	return errors.New(DatabaseNotExists)
 }
 
-func SelectTable(query *K3SelectQuery) ([]map[string]string, int, error) {
+func SelectTable(query *K3SelectQuery, user string) ([]map[string]string, int, error) {
 	if DatabaseExists(query.Table.Database) {
 		if ExistsTable(query.Table) {
-			resp, rows, err := SelectTableFile(query)
-			return resp, rows, err
+			if checkPermission(query.Table, user, K3Read) {
+				resp, rows, err := SelectTableFile(query)
+				return resp, rows, err
+			}
+			return nil, 0, errors.New(AccessDenied)
 		}
 		return nil, 0, errors.New(TableNotExists)
 	}
 	return nil, 0, errors.New(DatabaseNotExists)
 }
 
-func UpdateTable(query *K3UpdateQuery) (int, error) {
+func UpdateTable(query *K3UpdateQuery, user string) (int, error) {
 	if DatabaseExists(query.Table.Database) {
 		if ExistsTable(query.Table) {
 			if query.Table.Name == K3UsersTable || query.Table.Name == K3TablesTable {
 				return 0, errors.New(AccessDenied)
 			}
-			return UpdateTableFile(query)
+			if checkPermission(query.Table, user, K3Write) {
+				return UpdateTableFile(query)
+			}
+			return 0, errors.New(AccessDenied)
 		}
 		return 0, errors.New(TableNotExists)
 	}
 	return 0, errors.New(DatabaseNotExists)
 }
 
-func DeleteTable(query *K3DeleteQuery) (int, error) {
+func DeleteTable(query *K3DeleteQuery, user string) (int, error) {
 	if DatabaseExists(query.Table.Database) {
 		if ExistsTable(query.Table) {
 			if query.Table.Name == K3UsersTable || query.Table.Name == K3TablesTable {
 				return 0, errors.New(AccessDenied)
 			}
-			return DeleteTableFile(query)
+			if checkPermission(query.Table, user, K3Write) {
+				return DeleteTableFile(query)
+			}
+			return 0, errors.New(AccessDenied)
 		}
 		return 0, errors.New(TableNotExists)
 	}
 	return 0, errors.New(DatabaseNotExists)
 }
 
-func DropTable(table *K3Table) error {
+func DropTable(table *K3Table, user string) error {
 	if DatabaseExists(table.Database) {
 		if ExistsTable(table) {
 			if table.Name == K3UsersTable || table.Name == K3TablesTable {
 				return errors.New(AccessDenied)
 			}
-			conditions := make([]K3Condition, 1)
-			condition := K3Condition{
-				Column:   "table",
-				Value:    table.Name,
-				Operator: "=",
-			}
-			conditions[0] = condition
-			query := K3DeleteQuery{
-				Table:      K3Tables[table.Database+"."+K3TablesTable],
-				Conditions: conditions,
-			}
-			_, err := DeleteTableFile(&query)
-			if err == nil {
-				err = DropTableFile(table)
-				if err == nil {
-					delete(K3Tables, table.Database+"."+table.Name)
+			if checkPermission(table, user, K3Write) {
+				conditionsTables := make([]K3Condition, 1)
+				conditionsPermissions := make([]K3Condition, 1)
+				conditionTables := K3Condition{
+					Column:   "table",
+					Value:    table.Name,
+					Operator: "=",
 				}
+				conditionPermissions := K3Condition{
+					Column:   "table",
+					Value:    table.Name,
+					Operator: "=",
+				}
+				conditionsTables[0] = conditionTables
+				conditionsPermissions[0] = conditionPermissions
+				queryTables := K3DeleteQuery{
+					Table:      K3Tables[table.Database+"."+K3TablesTable],
+					Conditions: conditionsTables,
+				}
+				queryPermissions := K3DeleteQuery{
+					Table:      K3Tables[table.Database+"."+K3PermissionsTable],
+					Conditions: conditionsPermissions,
+				}
+				_, err := DeleteTableFile(&queryTables)
+				if err == nil {
+					_, err = DeleteTableFile(&queryPermissions)
+					if err == nil {
+						err = DropTableFile(table)
+						if err == nil {
+							delete(K3Tables, table.Database+"."+table.Name)
+						}
+					}
+				}
+				return err
 			}
-			return err
+			return errors.New(AccessDenied)
 		}
 		return errors.New(TableNotExists)
 	}
@@ -139,4 +207,18 @@ func ProcessUser(userQuery *K3UserQuery) error {
 		}
 	}
 	return errors.New(DatabaseNotExists)
+}
+
+func GrantPermission(table *K3Table, user string, permission int) error {
+	values := make([]map[string]string, 1)
+	values[0] = map[string]string{
+		"user":       user,
+		"table":      table.Name,
+		"permission": strconv.Itoa(permission),
+	}
+	permissionQuery := K3InsertQuery{
+		Table:  K3Tables[table.Database+"."+K3PermissionsTable],
+		Values: values,
+	}
+	return InsertTableFile(&permissionQuery)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -33,8 +34,12 @@ func CreateDatabase(name string) error {
 		if err == nil {
 			userTableFields := make([]string, 2)
 			tablesTableFields := make([]string, 1)
+			permissionsTableFields := make([]string, 3)
 			userTableFields[0], userTableFields[1] = "name", "password"
 			tablesTableFields[0] = "table"
+			permissionsTableFields[0] = "user"
+			permissionsTableFields[1] = "table"
+			permissionsTableFields[2] = "permission"
 			userTable := K3Table{
 				Database: name,
 				Name:     K3UsersTable,
@@ -47,11 +52,21 @@ func CreateDatabase(name string) error {
 				Fields:   tablesTableFields,
 				Mu:       new(sync.RWMutex),
 			}
+			permissionsTable := K3Table{
+				Database: name,
+				Name:     K3PermissionsTable,
+				Fields:   permissionsTableFields,
+				Mu:       new(sync.RWMutex),
+			}
 			queryUsersFields := make(map[string]int, 2)
 			queryTablesFields := make(map[string]int, 1)
-			queryTablesFields["table"] = 3
-			queryUsersFields["name"] = 3
-			queryUsersFields["password"] = 3
+			queryPermissionsFields := make(map[string]int, 3)
+			queryTablesFields["table"] = K3TEXT
+			queryUsersFields["name"] = K3TEXT
+			queryUsersFields["password"] = K3TEXT
+			queryPermissionsFields["user"] = K3TEXT
+			queryPermissionsFields["table"] = K3TEXT
+			queryPermissionsFields["permission"] = K3INT
 			queryUsers := K3CreateQuery{
 				Table:  &userTable,
 				Fields: queryUsersFields,
@@ -59,6 +74,10 @@ func CreateDatabase(name string) error {
 			queryTables := K3CreateQuery{
 				Table:  &tablesTable,
 				Fields: queryTablesFields,
+			}
+			queryPermissions := K3CreateQuery{
+				Table:  &permissionsTable,
+				Fields: queryPermissionsFields,
 			}
 			err = CreateTable(&queryTables)
 			if err == nil {
@@ -68,6 +87,10 @@ func CreateDatabase(name string) error {
 			if err == nil {
 				K3Tables[userTable.Database+"."+userTable.Name] = &userTable
 			}
+			err = CreateTable(&queryPermissions)
+			if err == nil {
+				K3Tables[permissionsTable.Database+"."+permissionsTable.Name] = &permissionsTable
+			}
 			insertUsersValues := make([]map[string]string, 1)
 			insertUsersValues[0] = make(map[string]string, 2)
 			insertUsersValues[0]["name"] = "k3user"
@@ -76,7 +99,21 @@ func CreateDatabase(name string) error {
 				Table:  &userTable,
 				Values: insertUsersValues,
 			}
-			err = InsertTable(&insertUsersQuery)
+			err = InsertTable(&insertUsersQuery, "k3user")
+			insertPermissionsValues := make([]map[string]string, 2)
+			insertPermissionsValues[0] = make(map[string]string, 3)
+			insertPermissionsValues[1] = make(map[string]string, 3)
+			insertPermissionsValues[0]["user"] = "k3user"
+			insertPermissionsValues[0]["table"] = K3UsersTable
+			insertPermissionsValues[0]["permission"] = strconv.Itoa(K3Read)
+			insertPermissionsValues[1]["user"] = "k3user"
+			insertPermissionsValues[1]["table"] = K3TablesTable
+			insertPermissionsValues[1]["permission"] = strconv.Itoa(K3Read)
+			insertPermissionsQuery := K3InsertQuery{
+				Table:  &permissionsTable,
+				Values: insertPermissionsValues,
+			}
+			err = InsertTable(&insertPermissionsQuery, "k3user")
 		}
 		return err
 	}

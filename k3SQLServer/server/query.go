@@ -76,7 +76,7 @@ func checkUserQuery(query string) bool {
 	return true
 }
 
-func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
+func querySQL(queryString, user string, dbSlice ...string) *k3QueryResponse {
 	db := core.DatabaseDefaultName
 	if len(dbSlice) > 0 {
 		db = dbSlice[0]
@@ -94,7 +94,7 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 	case "select":
 		query, err := parser.ParseSelectQuery(queryString, db)
 		if err == nil {
-			resp, rows, err := core.SelectTable(query)
+			resp, rows, err := core.SelectTable(query, user)
 			response.Fields = resp
 			if err == nil {
 				response.Status = true
@@ -134,7 +134,7 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 	case "insert":
 		query, err := parser.ParseInsertQuery(queryString, db)
 		if err == nil {
-			err = core.InsertTable(query)
+			err = core.InsertTable(query, user)
 			if err == nil {
 				response.Status = true
 				response.Message = "done"
@@ -148,7 +148,7 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 	case "update":
 		query, err := parser.ParseUpdateQuery(queryString, db)
 		if err == nil {
-			count, err := core.UpdateTable(query)
+			count, err := core.UpdateTable(query, user)
 			if err == nil {
 				response.Status = true
 				response.Message = fmt.Sprintf("%d rows updated", count)
@@ -162,7 +162,7 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 	case "drop":
 		table, err := parser.ParseDropQuery(queryString, db)
 		if err == nil {
-			err = core.DropTable(table)
+			err = core.DropTable(table, user)
 			if err == nil {
 				response.Status = true
 				response.Message = "done"
@@ -176,7 +176,7 @@ func querySQL(queryString string, dbSlice ...string) *k3QueryResponse {
 	case "delete":
 		query, err := parser.ParseDeleteQuery(queryString, db)
 		if err == nil {
-			count, err := core.DeleteTable(query)
+			count, err := core.DeleteTable(query, user)
 			if err == nil {
 				response.Status = true
 				response.Message = fmt.Sprintf("%d rows deleted", count)
