@@ -6,6 +6,9 @@ import (
 )
 
 func checkPermission(table *K3Table, user string, permission int) bool {
+	if user == CoreUser {
+		return true
+	}
 	approve := false
 	conditions := make([]K3Condition, 2)
 	conditions[0] = K3Condition{
@@ -19,7 +22,7 @@ func checkPermission(table *K3Table, user string, permission int) bool {
 		Value:    table.Name,
 	}
 	selectPermissions := K3SelectQuery{
-		Table:      table,
+		Table:      K3Tables[table.Database+"."+K3PermissionsTable],
 		Values:     []string{"permission"},
 		Conditions: conditions,
 	}
@@ -53,9 +56,9 @@ func CreateTable(query *K3CreateQuery) error {
 					Table:  K3Tables[query.Table.Database+"."+K3TablesTable],
 					Values: insertValues,
 				}
-				err = InsertTable(&insertQuery, "k3user")
+				err = GrantPermission(query.Table, "k3user", K3All)
 				if err == nil {
-					err = GrantPermission(query.Table, "k3user", K3All)
+					err = InsertTable(&insertQuery, CoreUser)
 				}
 			}
 			return err
@@ -174,7 +177,7 @@ func DropTable(table *K3Table, user string) error {
 
 func ProcessUser(userQuery *K3UserQuery) error {
 	if DatabaseExists(userQuery.Database) {
-		if userQuery.Username == "k3user" {
+		if userQuery.Username == "k3user" || userQuery.Username == CoreUser {
 			return errors.New(AccessDenied)
 		}
 		values := make([]map[string]string, 1)
