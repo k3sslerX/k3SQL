@@ -12,7 +12,7 @@ func main() {
 	server := k3SQLClient.K3Server{
 		Host:     "localhost",
 		Port:     3003,
-		Database: "k3db",
+		Database: "tmp",
 		User:     "k3user",
 		Password: "333",
 	}

@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"strconv"
 )
 
 func CreateTable(query *K3CreateQuery) error {
@@ -18,6 +19,9 @@ func CreateTable(query *K3CreateQuery) error {
 					Values: insertValues,
 				}
 				err = InsertTable(&insertQuery)
+				if err == nil {
+					err = GrantPermission(query.Table, "k3user", K3All)
+				}
 			}
 			return err
 		}
@@ -139,4 +143,18 @@ func ProcessUser(userQuery *K3UserQuery) error {
 		}
 	}
 	return errors.New(DatabaseNotExists)
+}
+
+func GrantPermission(table *K3Table, user string, permission int) error {
+	values := make([]map[string]string, 1)
+	values[0] = map[string]string{
+		"user":       user,
+		"table":      table.Name,
+		"permission": strconv.Itoa(permission),
+	}
+	permissionQuery := K3InsertQuery{
+		Table:  K3Tables[table.Database+"."+K3PermissionsTable],
+		Values: values,
+	}
+	return InsertTableFile(&permissionQuery)
 }

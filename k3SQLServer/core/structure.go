@@ -14,8 +14,8 @@ const K3PermissionsTable = K3ServiceTablesPrefix + "permissions"
 
 // PERMISSIONS CONST
 const K3All = 0
-const K3Read = 1
-const K3Write = 2
+const K3Write = 1
+const K3Read = 2
 
 // ERROR MESSAGES
 const TableNotExists = "table does not exists"
