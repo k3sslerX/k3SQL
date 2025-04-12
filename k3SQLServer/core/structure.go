@@ -2,6 +2,8 @@ package core
 
 import "sync"
 
+const CoreUser = "k3core"
+
 // FILES CONST
 const K3FilesPath = "/opt/k3SQL/"
 const K3ConfigurationPath = K3FilesPath + "config/"
