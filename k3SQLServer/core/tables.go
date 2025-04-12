@@ -177,7 +177,7 @@ func DropTable(table *K3Table, user string) error {
 
 func ProcessUser(userQuery *K3UserQuery) error {
 	if DatabaseExists(userQuery.Database) {
-		if userQuery.Username == "k3user" {
+		if userQuery.Username == "k3user" || userQuery.Username == CoreUser {
 			return errors.New(AccessDenied)
 		}
 		values := make([]map[string]string, 1)
