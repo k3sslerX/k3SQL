@@ -79,17 +79,20 @@ func CreateDatabase(name string) error {
 				Table:  &permissionsTable,
 				Fields: queryPermissionsFields,
 			}
+			K3Tables[userTable.Database+"."+tablesTable.Name] = &tablesTable
 			err = CreateTable(&queryTables)
-			if err == nil {
-				K3Tables[userTable.Database+"."+tablesTable.Name] = &tablesTable
+			if err != nil {
+				return err
 			}
+			K3Tables[userTable.Database+"."+userTable.Name] = &userTable
 			err = CreateTable(&queryUsers)
-			if err == nil {
-				K3Tables[userTable.Database+"."+userTable.Name] = &userTable
+			if err != nil {
+				return err
 			}
+			K3Tables[permissionsTable.Database+"."+permissionsTable.Name] = &permissionsTable
 			err = CreateTable(&queryPermissions)
-			if err == nil {
-				K3Tables[permissionsTable.Database+"."+permissionsTable.Name] = &permissionsTable
+			if err != nil {
+				return err
 			}
 			insertUsersValues := make([]map[string]string, 1)
 			insertUsersValues[0] = make(map[string]string, 2)
