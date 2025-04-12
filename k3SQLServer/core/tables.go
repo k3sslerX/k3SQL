@@ -19,7 +19,7 @@ func checkPermission(table *K3Table, user string, permission int) bool {
 		Value:    table.Name,
 	}
 	selectPermissions := K3SelectQuery{
-		Table:      K3Tables[table.Database+"."+K3PermissionsTable],
+		Table:      table,
 		Values:     []string{"permission"},
 		Conditions: conditions,
 	}
