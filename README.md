@@ -2,6 +2,9 @@
 
 k3SQL is a DBMS based on client-server architecture, using the method of concurency queries (as opposed to parallel ones, as in Postgres), which allows not to limit the number of simultaneous queries by the number of processor threads.
 
+## k3SQLClient
+
+⚠️ k3SQLClient is here only for tests. Soon, it will be converted to a driver that satisfies the driver interface of the sql package of the Golang standard library.
 
 ## TODO
 
