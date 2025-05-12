@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"k3SQLServer/core"
+	"k3SQLServer/shared"
+	"k3SQLServer/storage"
 	"net"
 )
 
@@ -40,13 +42,13 @@ func handleConnection(conn net.Conn) {
 	authResp.RespType = "auth"
 	if err := json.Unmarshal([]byte(authLine), &authReq); err != nil {
 		authResp.Status = false
-		authResp.Error = core.InvalidAuthFormat
+		authResp.Error = shared.InvalidAuthFormat
 		resp, _ := json.Marshal(authResp)
 		conn.Write(append(resp, '\n'))
 		return
 	}
 
-	respFlag, err := core.CheckCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
+	respFlag, err := storage.CheckCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
 	if !respFlag {
 		authResp.Status = false
 		authResp.Error = err.Error()
@@ -81,7 +83,7 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 		} else {
-			conn.Write([]byte(core.UnknownAction + "\n"))
+			conn.Write([]byte(shared.UnknownAction + "\n"))
 		}
 	}
 }

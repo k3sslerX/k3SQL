@@ -2,6 +2,8 @@ package core
 
 import (
 	"errors"
+	"k3SQLServer/shared"
+	"k3SQLServer/storage"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -10,17 +12,17 @@ import (
 )
 
 func init() {
-	K3Tables = make(map[string]*K3Table, 1)
+	shared.K3Tables = make(map[string]*shared.K3Table, 1)
 	initialised := false
-	_, err := os.Stat(K3FilesPath)
+	_, err := os.Stat(shared.K3FilesPath)
 	if err == nil {
 		initialised = true
 	}
 	if !initialised {
-		err = os.MkdirAll(K3FilesPath, os.ModePerm)
+		err = os.MkdirAll(shared.K3FilesPath, os.ModePerm)
 		if err == nil {
-			err1 := os.MkdirAll(K3DataPath, os.ModePerm)
-			err2 := os.MkdirAll(K3ConfigurationPath, os.ModePerm)
+			err1 := os.MkdirAll(shared.K3DataPath, os.ModePerm)
+			err2 := os.MkdirAll(shared.K3ConfigurationPath, os.ModePerm)
 			if err1 == nil && err2 == nil {
 				err = CreateDatabase("k3db")
 			}
@@ -29,8 +31,8 @@ func init() {
 }
 
 func CreateDatabase(name string) error {
-	if !DatabaseExists(name) {
-		err := CreateDatabaseFile(name)
+	if !storage.DatabaseExists(name) {
+		err := storage.CreateDatabaseFile(name)
 		if err == nil {
 			userTableFields := make([]string, 2)
 			tablesTableFields := make([]string, 1)
@@ -40,54 +42,54 @@ func CreateDatabase(name string) error {
 			permissionsTableFields[0] = "user"
 			permissionsTableFields[1] = "table"
 			permissionsTableFields[2] = "permission"
-			userTable := K3Table{
+			userTable := shared.K3Table{
 				Database: name,
-				Name:     K3UsersTable,
+				Name:     shared.K3UsersTable,
 				Fields:   userTableFields,
 				Mu:       new(sync.RWMutex),
 			}
-			tablesTable := K3Table{
+			tablesTable := shared.K3Table{
 				Database: name,
-				Name:     K3TablesTable,
+				Name:     shared.K3TablesTable,
 				Fields:   tablesTableFields,
 				Mu:       new(sync.RWMutex),
 			}
-			permissionsTable := K3Table{
+			permissionsTable := shared.K3Table{
 				Database: name,
-				Name:     K3PermissionsTable,
+				Name:     shared.K3PermissionsTable,
 				Fields:   permissionsTableFields,
 				Mu:       new(sync.RWMutex),
 			}
 			queryUsersFields := make(map[string]int, 2)
 			queryTablesFields := make(map[string]int, 1)
 			queryPermissionsFields := make(map[string]int, 3)
-			queryTablesFields["table"] = K3TEXT
-			queryUsersFields["name"] = K3TEXT
-			queryUsersFields["password"] = K3TEXT
-			queryPermissionsFields["user"] = K3TEXT
-			queryPermissionsFields["table"] = K3TEXT
-			queryPermissionsFields["permission"] = K3INT
-			queryUsers := K3CreateQuery{
+			queryTablesFields["table"] = shared.K3TEXT
+			queryUsersFields["name"] = shared.K3TEXT
+			queryUsersFields["password"] = shared.K3TEXT
+			queryPermissionsFields["user"] = shared.K3TEXT
+			queryPermissionsFields["table"] = shared.K3TEXT
+			queryPermissionsFields["permission"] = shared.K3INT
+			queryUsers := shared.K3CreateQuery{
 				Table:  &userTable,
 				Fields: queryUsersFields,
 			}
-			queryTables := K3CreateQuery{
+			queryTables := shared.K3CreateQuery{
 				Table:  &tablesTable,
 				Fields: queryTablesFields,
 			}
-			queryPermissions := K3CreateQuery{
+			queryPermissions := shared.K3CreateQuery{
 				Table:  &permissionsTable,
 				Fields: queryPermissionsFields,
 			}
-			err = CreateTableFile(&queryTables)
+			err = storage.CreateTableFile(&queryTables)
 			if err != nil {
 				return err
 			}
-			err = CreateTableFile(&queryUsers)
+			err = storage.CreateTableFile(&queryUsers)
 			if err != nil {
 				return err
 			}
-			err = CreateTableFile(&queryPermissions)
+			err = storage.CreateTableFile(&queryPermissions)
 			if err != nil {
 				return err
 			}
@@ -96,44 +98,44 @@ func CreateDatabase(name string) error {
 			insertPermissionsValues[1] = make(map[string]string, 3)
 			insertPermissionsValues[2] = make(map[string]string, 3)
 			insertPermissionsValues[0]["user"] = "k3user"
-			insertPermissionsValues[0]["table"] = K3UsersTable
-			insertPermissionsValues[0]["permission"] = strconv.Itoa(K3Read)
+			insertPermissionsValues[0]["table"] = shared.K3UsersTable
+			insertPermissionsValues[0]["permission"] = strconv.Itoa(shared.K3Read)
 			insertPermissionsValues[1]["user"] = "k3user"
-			insertPermissionsValues[1]["table"] = K3TablesTable
-			insertPermissionsValues[1]["permission"] = strconv.Itoa(K3Read)
+			insertPermissionsValues[1]["table"] = shared.K3TablesTable
+			insertPermissionsValues[1]["permission"] = strconv.Itoa(shared.K3Read)
 			insertPermissionsValues[2]["user"] = "k3user"
-			insertPermissionsValues[2]["table"] = K3PermissionsTable
-			insertPermissionsValues[2]["permission"] = strconv.Itoa(K3All)
-			insertPermissionsQuery := K3InsertQuery{
+			insertPermissionsValues[2]["table"] = shared.K3PermissionsTable
+			insertPermissionsValues[2]["permission"] = strconv.Itoa(shared.K3All)
+			insertPermissionsQuery := shared.K3InsertQuery{
 				Table:  &permissionsTable,
 				Values: insertPermissionsValues,
 			}
-			err = InsertTableFile(&insertPermissionsQuery)
+			err = storage.InsertTableFile(&insertPermissionsQuery)
 			insertUsersValues := make([]map[string]string, 1)
 			insertUsersValues[0] = make(map[string]string, 2)
 			insertUsersValues[0]["name"] = "k3user"
 			insertUsersValues[0]["password"] = "333"
-			insertUsersQuery := K3InsertQuery{
+			insertUsersQuery := shared.K3InsertQuery{
 				Table:  &userTable,
 				Values: insertUsersValues,
 			}
-			err = InsertTableFile(&insertUsersQuery)
+			err = storage.InsertTableFile(&insertUsersQuery)
 			insertTablesValues := make([]map[string]string, 3)
 			insertTablesValues[0] = make(map[string]string, 1)
 			insertTablesValues[1] = make(map[string]string, 1)
 			insertTablesValues[2] = make(map[string]string, 1)
-			insertTablesValues[0]["table"] = K3UsersTable
-			insertTablesValues[1]["table"] = K3TablesTable
-			insertTablesValues[2]["table"] = K3PermissionsTable
-			insertTablesQuery := K3InsertQuery{
+			insertTablesValues[0]["table"] = shared.K3UsersTable
+			insertTablesValues[1]["table"] = shared.K3TablesTable
+			insertTablesValues[2]["table"] = shared.K3PermissionsTable
+			insertTablesQuery := shared.K3InsertQuery{
 				Table:  &tablesTable,
 				Values: insertTablesValues,
 			}
-			err = InsertTableFile(&insertTablesQuery)
+			err = storage.InsertTableFile(&insertTablesQuery)
 		}
 		return err
 	}
-	return errors.New(DatabaseAlreadyExists)
+	return errors.New(shared.DatabaseAlreadyExists)
 }
 
 func readAllFiles(rootDir string, callback func(path string, isDir bool) error) error {
@@ -146,17 +148,17 @@ func readAllFiles(rootDir string, callback func(path string, isDir bool) error) 
 }
 
 func StartService() error {
-	err := readAllFiles(K3FilesPath, func(path string, isDir bool) error {
+	err := readAllFiles(shared.K3FilesPath, func(path string, isDir bool) error {
 		if !isDir {
-			if strings.HasPrefix(path, K3DataPath) && strings.HasSuffix(path, Extension) {
-				path = strings.TrimPrefix(path, K3DataPath)
-				path = strings.TrimSuffix(path, Extension)
+			if strings.HasPrefix(path, shared.K3DataPath) && strings.HasSuffix(path, shared.Extension) {
+				path = strings.TrimPrefix(path, shared.K3DataPath)
+				path = strings.TrimSuffix(path, shared.Extension)
 				fileParts := strings.Split(path, "/")
 				if len(fileParts) == 2 {
-					table := &K3Table{Name: fileParts[1], Database: fileParts[0], Mu: new(sync.RWMutex)}
-					err := AddFieldsTableFile(table)
+					table := &shared.K3Table{Name: fileParts[1], Database: fileParts[0], Mu: new(sync.RWMutex)}
+					err := storage.AddFieldsTableFile(table)
 					if err == nil {
-						K3Tables[table.Database+"."+table.Name] = table
+						shared.K3Tables[table.Database+"."+table.Name] = table
 					} else {
 						return err
 					}
