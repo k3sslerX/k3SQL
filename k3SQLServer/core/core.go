@@ -152,10 +152,10 @@ func uploadTables() {
 	for {
 		time.Sleep(time.Minute * 5)
 		for k, v := range shared.K3Tables {
-			if strings.HasPrefix(k, "k3_") {
+			if strings.HasPrefix(v.Name, "k3_") {
 				continue
 			}
-			if time.Since(v.LU) > 10 {
+			if time.Since(v.LU) > time.Minute*10 {
 				delete(shared.K3Tables, k)
 			}
 		}
