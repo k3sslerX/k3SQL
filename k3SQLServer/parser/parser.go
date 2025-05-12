@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"k3SQLServer/shared"
+	"k3SQLServer/storage"
+	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 func ParseUserQuery(queryStr, db string) (*shared.K3UserQuery, error) {
@@ -81,12 +84,12 @@ func ParseCreateQuery(queryStr, db string) (*shared.K3CreateQuery, error) {
 			continue
 		}
 		if tableFlag {
-			table := shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex)}
+			table := shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex), LU: time.Now()}
 			query.Table = &table
 			tableFlag = false
 		}
 		if databaseFlag {
-			table := shared.K3Table{Name: "", Database: part, Mu: nil}
+			table := shared.K3Table{Name: "", Database: part, Mu: nil, LU: time.Now()}
 			query.Table = &table
 			return query, nil
 		}
@@ -142,18 +145,31 @@ func ParseInsertQuery(queryStr, db string) (*shared.K3InsertQuery, error) {
 		if strings.EqualFold(part, "into") {
 			intoFlag = true
 			continue
-		} else if strings.EqualFold(part, "Values") {
+		} else if strings.EqualFold(part, "values") {
 			fieldsFlag = false
 			ValuesFlag = true
 			continue
 		}
 		if intoFlag {
 			table, ok := shared.K3Tables[db+"."+part]
-			if ok {
-				query.Table = table
-			} else {
-				return nil, errors.New(shared.TableNotExists)
+			if !ok {
+				filePath := shared.K3DataPath + db + "/" + part + shared.Extension
+				_, err := os.Open(filePath)
+				if err == nil {
+					tableFile := &shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex), LU: time.Now()}
+					err = storage.AddFieldsTableFile(tableFile)
+					if err == nil {
+						shared.K3Tables[tableFile.Database+"."+tableFile.Name] = tableFile
+						table = tableFile
+					} else {
+						return nil, err
+					}
+				} else {
+					return nil, errors.New(shared.TableNotExists)
+				}
 			}
+			table.LU = time.Now()
+			query.Table = table
 			intoFlag = false
 			fieldsFlag = true
 			continue
@@ -237,8 +253,22 @@ func ParseUpdateQuery(queryStr, db string) (*shared.K3UpdateQuery, error) {
 			if updateFlag {
 				table, ok := shared.K3Tables[db+"."+part]
 				if !ok {
-					return nil, errors.New(shared.TableNotExists)
+					filePath := shared.K3DataPath + db + "/" + part + shared.Extension
+					_, err := os.Open(filePath)
+					if err == nil {
+						tableFile := &shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex), LU: time.Now()}
+						err = storage.AddFieldsTableFile(tableFile)
+						if err == nil {
+							shared.K3Tables[tableFile.Database+"."+tableFile.Name] = tableFile
+							table = tableFile
+						} else {
+							return nil, err
+						}
+					} else {
+						return nil, errors.New(shared.TableNotExists)
+					}
 				}
+				table.LU = time.Now()
 				query.Table = table
 			} else if setFlag {
 				setParts = append(setParts, part)
@@ -303,11 +333,23 @@ func ParseDropQuery(queryStr, db string) (*shared.K3Table, error) {
 		}
 		if tableFlag {
 			table, ok := shared.K3Tables[db+"."+part]
-			if ok {
-				return table, nil
-			} else {
-				return nil, errors.New(shared.TableNotExists)
+			if !ok {
+				filePath := shared.K3DataPath + db + "/" + part + shared.Extension
+				_, err := os.Open(filePath)
+				if err == nil {
+					tableFile := &shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex), LU: time.Now()}
+					err = storage.AddFieldsTableFile(tableFile)
+					if err == nil {
+						shared.K3Tables[tableFile.Database+"."+tableFile.Name] = tableFile
+						table = tableFile
+					} else {
+						return nil, err
+					}
+				} else {
+					return nil, errors.New(shared.TableNotExists)
+				}
 			}
+			return table, nil
 		}
 	}
 	return nil, errors.New(shared.InvalidSQLSyntax)
@@ -347,8 +389,22 @@ func ParseSelectQuery(queryStr, db string) (*shared.K3SelectQuery, error) {
 			} else if fromCond {
 				table, ok := shared.K3Tables[db+"."+part]
 				if !ok {
-					return nil, errors.New(shared.TableNotExists)
+					filePath := shared.K3DataPath + db + "/" + part + shared.Extension
+					_, err := os.Open(filePath)
+					if err == nil {
+						tableFile := &shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex), LU: time.Now()}
+						err = storage.AddFieldsTableFile(tableFile)
+						if err == nil {
+							shared.K3Tables[tableFile.Database+"."+tableFile.Name] = tableFile
+							table = tableFile
+						} else {
+							return nil, err
+						}
+					} else {
+						return nil, errors.New(shared.TableNotExists)
+					}
 				}
+				table.LU = time.Now()
 				query.Table = table
 			} else if whereCond {
 				whereParts = append(whereParts, part)

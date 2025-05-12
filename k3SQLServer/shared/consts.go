@@ -1,6 +1,9 @@
 package shared
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 const CoreUser = "k3core"
 
@@ -103,6 +106,7 @@ type K3Table struct {
 	Name     string
 	Fields   []string
 	Mu       *sync.RWMutex
+	LU       time.Time
 }
 
 var K3Tables map[string]*K3Table
