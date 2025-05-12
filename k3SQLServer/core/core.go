@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 func init() {
@@ -147,6 +148,20 @@ func readAllFiles(rootDir string, callback func(path string, isDir bool) error) 
 	})
 }
 
+func uploadTables() {
+	for {
+		time.Sleep(time.Minute * 5)
+		for k, v := range shared.K3Tables {
+			if strings.HasPrefix(v.Name, "k3_") {
+				continue
+			}
+			if time.Since(v.LU) > time.Minute*10 {
+				delete(shared.K3Tables, k)
+			}
+		}
+	}
+}
+
 func StartService() error {
 	err := readAllFiles(shared.K3FilesPath, func(path string, isDir bool) error {
 		if !isDir {
@@ -155,17 +170,22 @@ func StartService() error {
 				path = strings.TrimSuffix(path, shared.Extension)
 				fileParts := strings.Split(path, "/")
 				if len(fileParts) == 2 {
-					table := &shared.K3Table{Name: fileParts[1], Database: fileParts[0], Mu: new(sync.RWMutex)}
-					err := storage.AddFieldsTableFile(table)
-					if err == nil {
-						shared.K3Tables[table.Database+"."+table.Name] = table
-					} else {
-						return err
+					if strings.HasPrefix(fileParts[1], "k3_") {
+						table := &shared.K3Table{Name: fileParts[1], Database: fileParts[0], Mu: new(sync.RWMutex), LU: time.Now()}
+						err := storage.AddFieldsTableFile(table)
+						if err == nil {
+							shared.K3Tables[table.Database+"."+table.Name] = table
+						} else {
+							return err
+						}
 					}
 				}
 			}
 		}
 		return nil
 	})
+	if err == nil {
+		go uploadTables()
+	}
 	return err
 }
