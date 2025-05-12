@@ -20,6 +20,7 @@ type K3Server struct {
 type K3Connection struct {
 	Conn          net.Conn
 	Database      string
+	User          string
 	Authenticated bool
 }
 

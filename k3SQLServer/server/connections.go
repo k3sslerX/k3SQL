@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"k3SQLServer/core"
+	"k3SQLServer/shared"
+	"k3SQLServer/storage"
 	"net"
 )
 
@@ -40,13 +42,13 @@ func handleConnection(conn net.Conn) {
 	authResp.RespType = "auth"
 	if err := json.Unmarshal([]byte(authLine), &authReq); err != nil {
 		authResp.Status = false
-		authResp.Error = core.InvalidAuthFormat
+		authResp.Error = shared.InvalidAuthFormat
 		resp, _ := json.Marshal(authResp)
 		conn.Write(append(resp, '\n'))
 		return
 	}
 
-	respFlag, err := core.CheckCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
+	respFlag, err := storage.CheckCredentialsFiles(authReq.Database, authReq.User, authReq.Password)
 	if !respFlag {
 		authResp.Status = false
 		authResp.Error = err.Error()
@@ -73,7 +75,7 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte(err.Error() + "\n"))
 		}
 		if req.Action == "query" {
-			result := querySQL(req.Query, db)
+			result := querySQL(req.Query, req.User, db)
 			output, _ := json.Marshal(result)
 			conn.Write(append(output, '\n'))
 			if err != nil {
@@ -81,7 +83,7 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 		} else {
-			conn.Write([]byte(core.UnknownAction + "\n"))
+			conn.Write([]byte(shared.UnknownAction + "\n"))
 		}
 	}
 }
@@ -89,7 +91,7 @@ func handleConnection(conn net.Conn) {
 func ConnectServer(host, port string) {
 	err := core.StartService()
 	if err != nil {
-		fmt.Println("Can't start K3SQLServer service")
+		fmt.Println("Can't start K3SQLServer service. Error:", err)
 		return
 	}
 	serverAddr := host + ":" + port

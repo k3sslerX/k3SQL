@@ -1,10 +1,11 @@
-package core
+package storage
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
+	"k3SQLServer/shared"
 	"os"
 	"regexp"
 	"strconv"
@@ -12,12 +13,12 @@ import (
 )
 
 func CreateDatabaseFile(name string) error {
-	return os.Mkdir(K3sqlDataPath+name, 0700)
+	return os.Mkdir(shared.K3DataPath+name, os.ModePerm)
 }
 
 func DatabaseExists(name string) bool {
 	if len(name) > 0 {
-		_, err := os.Stat(K3sqlDataPath + name)
+		_, err := os.Stat(shared.K3DataPath + name)
 		if err == nil {
 			return true
 		}
@@ -27,19 +28,19 @@ func DatabaseExists(name string) bool {
 
 func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 	if !DatabaseExists(dbName) {
-		return false, errors.New(DatabaseNotExists)
+		return false, errors.New(shared.DatabaseNotExists)
 	}
 
-	TableKey := dbName + ".users"
-	usersTable, ok := K3Tables[TableKey]
+	TableKey := dbName + "." + shared.K3UsersTable
+	usersTable, ok := shared.K3Tables[TableKey]
 	if !ok {
-		return false, errors.New(TableNotExists)
+		return false, errors.New(shared.TableNotExists)
 	}
 
 	usersTable.Mu.RLock()
 	defer usersTable.Mu.RUnlock()
 
-	filePath := K3sqlDataPath + dbName + "/users" + Extension
+	filePath := shared.K3DataPath + dbName + "/" + shared.K3UsersTable + shared.Extension
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false, err
@@ -49,7 +50,7 @@ func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 	scanner := bufio.NewScanner(file)
 
 	if !scanner.Scan() {
-		return false, errors.New(FileFormatError)
+		return false, errors.New(shared.FileFormatError)
 	}
 
 	for scanner.Scan() {
@@ -59,12 +60,12 @@ func CheckCredentialsFiles(dbName, user, password string) (bool, error) {
 			if err == nil {
 				return true, nil
 			} else {
-				return false, errors.New(WrongPassword)
+				return false, errors.New(shared.WrongPassword)
 			}
 		}
 	}
 
-	return false, errors.New(UserNotFound)
+	return false, errors.New(shared.UserNotFound)
 }
 
 func parseUserRecord(line string) map[string]string {
@@ -75,8 +76,8 @@ func parseUserRecord(line string) map[string]string {
 	}
 }
 
-func ExistsTable(Table *K3Table) bool {
-	file, err := os.Open(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
+func ExistsTable(Table *shared.K3Table) bool {
+	file, err := os.Open(shared.K3DataPath + Table.Database + "/" + Table.Name + shared.Extension)
 	defer file.Close()
 	if err == nil {
 		data := make([]byte, 128)
@@ -92,8 +93,8 @@ func ExistsTable(Table *K3Table) bool {
 	return false
 }
 
-func AddFieldsTableFile(Table *K3Table) error {
-	file, err := os.Open(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
+func AddFieldsTableFile(Table *shared.K3Table) error {
+	file, err := os.Open(shared.K3DataPath + Table.Database + "/" + Table.Name + shared.Extension)
 	if err == nil {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
@@ -102,15 +103,19 @@ func AddFieldsTableFile(Table *K3Table) error {
 		parts := strings.Split(dataStr, "|")
 		TableFields := make([]string, len(parts))
 		for i := 0; i < len(parts); i++ {
-			TableFields[i] = parts[i][2:]
+			if len(parts[i]) > 2 {
+				TableFields[i] = parts[i][2:]
+			} else {
+				return errors.New(shared.FileFormatError)
+			}
 		}
 		Table.Fields = TableFields
 	}
 	return err
 }
 
-func CreateTableFile(query *K3CreateQuery) error {
-	file, err := os.Create(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
+func CreateTableFile(query *shared.K3CreateQuery) error {
+	file, err := os.Create(shared.K3DataPath + query.Table.Database + "/" + query.Table.Name + shared.Extension)
 	defer file.Close()
 	if err == nil {
 		writer := bufio.NewWriter(file)
@@ -130,10 +135,10 @@ func CreateTableFile(query *K3CreateQuery) error {
 	return err
 }
 
-func InsertTableFile(query *K3InsertQuery) error {
+func InsertTableFile(query *shared.K3InsertQuery) error {
 	query.Table.Mu.Lock()
 	defer query.Table.Mu.Unlock()
-	fileRead, err := os.Open(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
+	fileRead, err := os.Open(shared.K3DataPath + query.Table.Database + "/" + query.Table.Name + shared.Extension)
 	if err == nil {
 		scanner := bufio.NewScanner(fileRead)
 		scanner.Scan()
@@ -148,7 +153,7 @@ func InsertTableFile(query *K3InsertQuery) error {
 			}
 			TableTypes[part[2:]] = TableType
 		}
-		file, err := os.OpenFile(K3sqlDataPath+query.Table.Database+"/"+query.Table.Name+Extension, os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(shared.K3DataPath+query.Table.Database+"/"+query.Table.Name+shared.Extension, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
@@ -156,7 +161,7 @@ func InsertTableFile(query *K3InsertQuery) error {
 		for _, value := range query.Values {
 			str := ""
 			for _, k := range query.Table.Fields {
-				if TableTypes[k] == K3INT {
+				if TableTypes[k] == shared.K3INT {
 					v, ok := value[k]
 					if ok {
 						_, err := strconv.Atoi(v)
@@ -167,7 +172,7 @@ func InsertTableFile(query *K3InsertQuery) error {
 					} else {
 						return errors.New(fmt.Sprintf("empty Column: %s", k))
 					}
-				} else if TableTypes[k] == K3FLOAT {
+				} else if TableTypes[k] == shared.K3FLOAT {
 					v, ok := value[k]
 					if ok {
 						_, err := strconv.ParseFloat(v, 64)
@@ -178,7 +183,7 @@ func InsertTableFile(query *K3InsertQuery) error {
 					} else {
 						return errors.New(fmt.Sprintf("empty Column: %s", k))
 					}
-				} else if TableTypes[k] == K3TEXT {
+				} else if TableTypes[k] == shared.K3TEXT {
 					v, ok := value[k]
 					if ok {
 						str += v + "|"
@@ -198,16 +203,16 @@ func InsertTableFile(query *K3InsertQuery) error {
 	return err
 }
 
-func DropTableFile(Table *K3Table) error {
+func DropTableFile(Table *shared.K3Table) error {
 	Table.Mu.Lock()
 	defer Table.Mu.Unlock()
-	return os.Remove(K3sqlDataPath + Table.Database + "/" + Table.Name + Extension)
+	return os.Remove(shared.K3DataPath + Table.Database + "/" + Table.Name + shared.Extension)
 }
 
-func SelectTableFile(query *K3SelectQuery) ([]map[string]string, int, error) {
+func SelectTableFile(query *shared.K3SelectQuery) ([]map[string]string, int, error) {
 	query.Table.Mu.RLock()
 	defer query.Table.Mu.RUnlock()
-	fileRead, err := os.Open(K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension)
+	fileRead, err := os.Open(shared.K3DataPath + query.Table.Database + "/" + query.Table.Name + shared.Extension)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -243,11 +248,11 @@ func SelectTableFile(query *K3SelectQuery) ([]map[string]string, int, error) {
 	return results, rows, nil
 }
 
-func UpdateTableFile(query *K3UpdateQuery) (int, error) {
+func UpdateTableFile(query *shared.K3UpdateQuery) (int, error) {
 	query.Table.Mu.Lock()
 	defer query.Table.Mu.Unlock()
 
-	filePath := K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension
+	filePath := shared.K3DataPath + query.Table.Database + "/" + query.Table.Name + shared.Extension
 	tempFilePath := filePath + ".tmp"
 
 	file, err := os.Open(filePath)
@@ -309,11 +314,11 @@ func UpdateTableFile(query *K3UpdateQuery) (int, error) {
 	return updatedCount, nil
 }
 
-func DeleteTableFile(query *K3DeleteQuery) (int, error) {
+func DeleteTableFile(query *shared.K3DeleteQuery) (int, error) {
 	query.Table.Mu.Lock()
 	defer query.Table.Mu.Unlock()
 
-	filePath := K3sqlDataPath + query.Table.Database + "/" + query.Table.Name + Extension
+	filePath := shared.K3DataPath + query.Table.Database + "/" + query.Table.Name + shared.Extension
 	tempFilePath := filePath + ".tmp"
 
 	file, err := os.Open(filePath)
@@ -370,7 +375,7 @@ func parseRecord(line string, fields []string) map[string]string {
 	return record
 }
 
-func satisfiesConditions(record map[string]string, conditions []K3Condition) bool {
+func satisfiesConditions(record map[string]string, conditions []shared.K3Condition) bool {
 	for _, cond := range conditions {
 		recordValue, ok := record[cond.Column]
 		if !ok {
