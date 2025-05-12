@@ -3,14 +3,14 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"k3SQLServer/core"
+	"k3SQLServer/shared"
 	"strings"
 	"sync"
 )
 
-func ParseUserQuery(queryStr, db string) (*core.K3UserQuery, error) {
+func ParseUserQuery(queryStr, db string) (*shared.K3UserQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(core.K3UserQuery)
+	query := new(shared.K3UserQuery)
 	query.Database = db
 	newFlag := false
 	delFlag := false
@@ -26,14 +26,14 @@ func ParseUserQuery(queryStr, db string) (*core.K3UserQuery, error) {
 		}
 		if newFlag {
 			query.Username = part
-			query.Action = core.K3CREATE
+			query.Action = shared.K3CREATE
 			newFlag = false
 			pwdFlag = true
 			continue
 		}
 		if delFlag {
 			query.Username = part
-			query.Action = core.K3DELETE
+			query.Action = shared.K3DELETE
 			delFlag = false
 			pwdFlag = true
 			continue
@@ -47,9 +47,9 @@ func ParseUserQuery(queryStr, db string) (*core.K3UserQuery, error) {
 	return query, nil
 }
 
-func ParseCreateQuery(queryStr, db string) (*core.K3CreateQuery, error) {
+func ParseCreateQuery(queryStr, db string) (*shared.K3CreateQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(core.K3CreateQuery)
+	query := new(shared.K3CreateQuery)
 	tableFlag := false
 	ifFlag := false
 	notFlag := false
@@ -67,26 +67,26 @@ func ParseCreateQuery(queryStr, db string) (*core.K3CreateQuery, error) {
 			continue
 		} else if strings.EqualFold(part, "not") {
 			if !ifFlag {
-				return nil, errors.New(core.InvalidSQLSyntax)
+				return nil, errors.New(shared.InvalidSQLSyntax)
 			}
 			notFlag = true
 			continue
 		} else if strings.EqualFold(part, "exists") {
 			if !ifFlag {
-				return nil, errors.New(core.InvalidSQLSyntax)
+				return nil, errors.New(shared.InvalidSQLSyntax)
 			}
 			if !notFlag {
-				return nil, errors.New(core.InvalidSQLLogic)
+				return nil, errors.New(shared.InvalidSQLLogic)
 			}
 			continue
 		}
 		if tableFlag {
-			table := core.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex)}
+			table := shared.K3Table{Name: part, Database: db, Mu: new(sync.RWMutex)}
 			query.Table = &table
 			tableFlag = false
 		}
 		if databaseFlag {
-			table := core.K3Table{Name: "", Database: part, Mu: nil}
+			table := shared.K3Table{Name: "", Database: part, Mu: nil}
 			query.Table = &table
 			return query, nil
 		}
@@ -111,15 +111,15 @@ func ParseCreateQuery(queryStr, db string) (*core.K3CreateQuery, error) {
 	for i := 0; i < len(fieldsPartsTypes); i++ {
 		fieldsParts := strings.Fields(fieldsPartsTypes[i])
 		if len(fieldsParts) != 2 {
-			return nil, errors.New(core.InvalidSQLSyntax)
+			return nil, errors.New(shared.InvalidSQLSyntax)
 		}
 		switch strings.ToUpper(fieldsParts[1]) {
 		case "INT":
-			fields[fieldsParts[0]] = core.K3INT
+			fields[fieldsParts[0]] = shared.K3INT
 		case "FLOAT":
-			fields[fieldsParts[0]] = core.K3FLOAT
+			fields[fieldsParts[0]] = shared.K3FLOAT
 		case "TEXT":
-			fields[fieldsParts[0]] = core.K3TEXT
+			fields[fieldsParts[0]] = shared.K3TEXT
 		default:
 			return nil, errors.New(fmt.Sprintf("Invalid type: %s", fieldsParts[i+1]))
 		}
@@ -130,9 +130,9 @@ func ParseCreateQuery(queryStr, db string) (*core.K3CreateQuery, error) {
 	return query, nil
 }
 
-func ParseInsertQuery(queryStr, db string) (*core.K3InsertQuery, error) {
+func ParseInsertQuery(queryStr, db string) (*shared.K3InsertQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(core.K3InsertQuery)
+	query := new(shared.K3InsertQuery)
 	intoFlag := false
 	ValuesFlag := false
 	fieldsFlag := false
@@ -148,11 +148,11 @@ func ParseInsertQuery(queryStr, db string) (*core.K3InsertQuery, error) {
 			continue
 		}
 		if intoFlag {
-			table, ok := core.K3Tables[db+"."+part]
+			table, ok := shared.K3Tables[db+"."+part]
 			if ok {
 				query.Table = table
 			} else {
-				return nil, errors.New(core.TableNotExists)
+				return nil, errors.New(shared.TableNotExists)
 			}
 			intoFlag = false
 			fieldsFlag = true
@@ -194,7 +194,7 @@ func ParseInsertQuery(queryStr, db string) (*core.K3InsertQuery, error) {
 		tmpMap[cnt] = make(map[string]string, len(fieldsSlice))
 		valueParts := strings.Split(value, ",")
 		if len(fieldsSlice) != len(valueParts) {
-			return nil, errors.New(core.InvalidSQLSyntax)
+			return nil, errors.New(shared.InvalidSQLSyntax)
 		}
 		for i := 0; i < len(fieldsSlice); i++ {
 			tmpMap[cnt][fieldsSlice[i]] = valueParts[i]
@@ -205,11 +205,11 @@ func ParseInsertQuery(queryStr, db string) (*core.K3InsertQuery, error) {
 	return query, nil
 }
 
-func ParseUpdateQuery(queryStr, db string) (*core.K3UpdateQuery, error) {
+func ParseUpdateQuery(queryStr, db string) (*shared.K3UpdateQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := &core.K3UpdateQuery{
+	query := &shared.K3UpdateQuery{
 		SetValues:  make(map[string]string),
-		Conditions: make([]core.K3Condition, 0),
+		Conditions: make([]shared.K3Condition, 0),
 	}
 
 	updateFlag := true
@@ -235,9 +235,9 @@ func ParseUpdateQuery(queryStr, db string) (*core.K3UpdateQuery, error) {
 			updateFlag = false
 		default:
 			if updateFlag {
-				table, ok := core.K3Tables[db+"."+part]
+				table, ok := shared.K3Tables[db+"."+part]
 				if !ok {
-					return nil, errors.New(core.TableNotExists)
+					return nil, errors.New(shared.TableNotExists)
 				}
 				query.Table = table
 			} else if setFlag {
@@ -271,7 +271,7 @@ func ParseUpdateQuery(queryStr, db string) (*core.K3UpdateQuery, error) {
 	return query, nil
 }
 
-func ParseDropQuery(queryStr, db string) (*core.K3Table, error) {
+func ParseDropQuery(queryStr, db string) (*shared.K3Table, error) {
 	parts := strings.Fields(queryStr)
 	tableFlag := false
 	ifFlag := false
@@ -286,12 +286,12 @@ func ParseDropQuery(queryStr, db string) (*core.K3Table, error) {
 				ifFlag = true
 				tableFlag = false
 			} else {
-				return nil, errors.New(core.InvalidSQLSyntax)
+				return nil, errors.New(shared.InvalidSQLSyntax)
 			}
 			continue
 		} else if strings.EqualFold(part, "not") {
 			if ifFlag {
-				return nil, errors.New(core.InvalidSQLLogic)
+				return nil, errors.New(shared.InvalidSQLLogic)
 			}
 			continue
 		} else if strings.EqualFold(part, "exists") {
@@ -302,22 +302,22 @@ func ParseDropQuery(queryStr, db string) (*core.K3Table, error) {
 			continue
 		}
 		if tableFlag {
-			table, ok := core.K3Tables[db+"."+part]
+			table, ok := shared.K3Tables[db+"."+part]
 			if ok {
 				return table, nil
 			} else {
-				return nil, errors.New(core.TableNotExists)
+				return nil, errors.New(shared.TableNotExists)
 			}
 		}
 	}
-	return nil, errors.New(core.InvalidSQLSyntax)
+	return nil, errors.New(shared.InvalidSQLSyntax)
 }
 
-func ParseSelectQuery(queryStr, db string) (*core.K3SelectQuery, error) {
+func ParseSelectQuery(queryStr, db string) (*shared.K3SelectQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(core.K3SelectQuery)
+	query := new(shared.K3SelectQuery)
 	query.Values = make([]string, 0)
-	query.Conditions = make([]core.K3Condition, 0)
+	query.Conditions = make([]shared.K3Condition, 0)
 
 	selectCond := false
 	fromCond := false
@@ -345,9 +345,9 @@ func ParseSelectQuery(queryStr, db string) (*core.K3SelectQuery, error) {
 			if selectCond {
 				query.Values = append(query.Values, part)
 			} else if fromCond {
-				table, ok := core.K3Tables[db+"."+part]
+				table, ok := shared.K3Tables[db+"."+part]
 				if !ok {
-					return nil, errors.New(core.TableNotExists)
+					return nil, errors.New(shared.TableNotExists)
 				}
 				query.Table = table
 			} else if whereCond {
@@ -366,10 +366,10 @@ func ParseSelectQuery(queryStr, db string) (*core.K3SelectQuery, error) {
 	return query, nil
 }
 
-func ParseDeleteQuery(queryStr, db string) (*core.K3DeleteQuery, error) {
+func ParseDeleteQuery(queryStr, db string) (*shared.K3DeleteQuery, error) {
 	parts := strings.Fields(queryStr)
-	query := new(core.K3DeleteQuery)
-	query.Conditions = make([]core.K3Condition, 0)
+	query := new(shared.K3DeleteQuery)
+	query.Conditions = make([]shared.K3Condition, 0)
 
 	fromFlag := false
 	whereFlag := false
@@ -390,9 +390,9 @@ func ParseDeleteQuery(queryStr, db string) (*core.K3DeleteQuery, error) {
 			fromFlag = false
 		default:
 			if fromFlag {
-				table, ok := core.K3Tables[db+"."+part]
+				table, ok := shared.K3Tables[db+"."+part]
 				if !ok {
-					return nil, errors.New(core.TableNotExists)
+					return nil, errors.New(shared.TableNotExists)
 				}
 				query.Table = table
 				fromFlag = false
@@ -413,8 +413,8 @@ func ParseDeleteQuery(queryStr, db string) (*core.K3DeleteQuery, error) {
 	return query, nil
 }
 
-func parseWhereClause(whereClause string) ([]core.K3Condition, error) {
-	var conditions []core.K3Condition
+func parseWhereClause(whereClause string) ([]shared.K3Condition, error) {
+	var conditions []shared.K3Condition
 	andParts := strings.Split(whereClause, "and")
 	for _, part := range andParts {
 		part = strings.TrimSpace(part)
@@ -431,7 +431,7 @@ func parseWhereClause(whereClause string) ([]core.K3Condition, error) {
 	return conditions, nil
 }
 
-func parseSingleCondition(condStr string) (core.K3Condition, error) {
+func parseSingleCondition(condStr string) (shared.K3Condition, error) {
 	if likeIdx := strings.Index(strings.ToUpper(condStr), "LIKE "); likeIdx >= 0 {
 		column := strings.TrimSpace(condStr[:likeIdx])
 		value := strings.TrimSpace(condStr[likeIdx+5:])
@@ -440,7 +440,7 @@ func parseSingleCondition(condStr string) (core.K3Condition, error) {
 			value = strings.Trim(value, "'\"")
 		}
 
-		return core.K3Condition{
+		return shared.K3Condition{
 			Column:   column,
 			Operator: "LIKE",
 			Value:    value,
@@ -458,7 +458,7 @@ func parseSingleCondition(condStr string) (core.K3Condition, error) {
 				value = strings.Trim(value, "'\"")
 			}
 
-			return core.K3Condition{
+			return shared.K3Condition{
 				Column:   column,
 				Operator: op,
 				Value:    value,
@@ -466,5 +466,5 @@ func parseSingleCondition(condStr string) (core.K3Condition, error) {
 		}
 	}
 
-	return core.K3Condition{}, errors.New(core.InvalidSQLSyntax)
+	return shared.K3Condition{}, errors.New(shared.InvalidSQLSyntax)
 }

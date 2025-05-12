@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"k3SQLServer/core"
 	"k3SQLServer/parser"
+	"k3SQLServer/shared"
 	"regexp"
 	"strings"
 )
@@ -77,7 +78,7 @@ func checkUserQuery(query string) bool {
 }
 
 func querySQL(queryString, user string, dbSlice ...string) *k3QueryResponse {
-	db := core.DatabaseDefaultName
+	db := shared.DatabaseDefaultName
 	if len(dbSlice) > 0 {
 		db = dbSlice[0]
 	}
@@ -86,7 +87,7 @@ func querySQL(queryString, user string, dbSlice ...string) *k3QueryResponse {
 	response.RespType = "query"
 	response.Status = false
 	if !checkQuery(queryString) {
-		response.Error = core.InvalidSQLSyntax
+		response.Error = shared.InvalidSQLSyntax
 		return response
 	}
 	queryParts := strings.Fields(queryString)
@@ -202,7 +203,7 @@ func querySQL(queryString, user string, dbSlice ...string) *k3QueryResponse {
 		}
 		return response
 	default:
-		response.Error = core.InvalidSQLSyntax
+		response.Error = shared.InvalidSQLSyntax
 		return response
 	}
 }
