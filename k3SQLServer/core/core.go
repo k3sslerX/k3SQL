@@ -155,12 +155,14 @@ func StartService() error {
 				path = strings.TrimSuffix(path, shared.Extension)
 				fileParts := strings.Split(path, "/")
 				if len(fileParts) == 2 {
-					table := &shared.K3Table{Name: fileParts[1], Database: fileParts[0], Mu: new(sync.RWMutex)}
-					err := storage.AddFieldsTableFile(table)
-					if err == nil {
-						shared.K3Tables[table.Database+"."+table.Name] = table
-					} else {
-						return err
+					if strings.HasPrefix(fileParts[1], "k3_") {
+						table := &shared.K3Table{Name: fileParts[1], Database: fileParts[0], Mu: new(sync.RWMutex)}
+						err := storage.AddFieldsTableFile(table)
+						if err == nil {
+							shared.K3Tables[table.Database+"."+table.Name] = table
+						} else {
+							return err
+						}
 					}
 				}
 			}
